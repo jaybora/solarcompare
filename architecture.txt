@@ -3,3 +3,19 @@ HTML/javascript layer
 Kernel layer
 |
 Data provideres
+
+
+----------------
+
+JSON feed. Pull with plantid. 
+In the first version every plant is public.
+
+--------
+
+A json request is directed to a go routine where every live plant is controlled.
+If the plant is not live, the controller will launch it as a new go routine. 
+The channel to this new go routine is recorded in a map with the plantid as key. 
+When the plant is live, the controller will have the channel in the map.
+The json request is then replied via the given channel from http server.
+
+ 
