@@ -1,16 +1,23 @@
 package dataproviders
 
 import (
-	"../web"
 )
+
 
 type InitiateData struct {
 	UserName string
 	Password string
 }
 
+
 type DataProvider interface {
 	Name() string
-	Initiate(initiateData InitiateData)
-	PvData() web.PvData
+	PvData() (pv PvData, err error)
 }
+
+// List of all known dataproviders
+// This would be nice if we could autodetect them somehow
+const (
+	FJY = iota
+	SunnyPortal = iota
+)
