@@ -10,8 +10,8 @@ package controller
 import (
 	"dataproviders"
 	"dataproviders/dispatcher"
+	"log"
 	"plantdata"
-	"fmt"
 	"sync"
 )
 
@@ -23,11 +23,10 @@ type Controller struct {
 	live map[string]dataproviders.DataProvider
 }
 
-
 // Create a new controller
 // Only one for entire app
 func NewController() Controller {
-	return Controller{}
+	return Controller{map[string]dataproviders.DataProvider{}}
 }
 
 // Get the channel for the live provider of the given plantkey
@@ -38,21 +37,43 @@ func (c *Controller) Provider(plantdata *plantdata.PlantData) (provider dataprov
 	provider, ok := c.live[plantdata.PlantKey]
 	lock.RUnlock()
 	if ok {
-		return 
+		return
 	} else {
 		// No live, startup a new provider
-		c.startNewProvider(plantdata)
-		err = fmt.Errorf("Could not start dataprovider")
+		err = c.startNewProvider(plantdata)
+		if err != nil {
+			return 
+		}
+		lock.RLock()
+		provider, _ = c.live[plantdata.PlantKey]
+		lock.RUnlock()
 		return
 	}
 	return
 }
 
-func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) dataproviders.DataProvider {
-	p := dispatcher.Provider(plantdata.DataProvider, plantdata.InitiateData)
+func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
+	json, _ := plantdata.ToJson()
+	log.Printf("Starting new dataprovider for plant %s", json)
+	
+	f := func() {
+		c.providerTerminated(plantdata.PlantKey)
+	}
+	
+	p, err := dispatcher.Provider(plantdata.DataProvider, plantdata.InitiateData, f)
+	if err != nil {
+		return err
+	}
 	lock.Lock()
 	c.live[plantdata.PlantKey] = p
 	lock.Unlock()
-	return p
-	
+	return nil
+
+}
+
+func (c *Controller) providerTerminated(plantKey string) {
+	log.Printf("Controller, plantkey %s gone offline", plantKey)
+	lock.Lock()
+	delete(c.live, plantKey)
+	lock.Unlock()	
 }
