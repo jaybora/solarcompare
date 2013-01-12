@@ -14,6 +14,7 @@ type jfyDataProvider struct {
 	InitiateData   dataproviders.InitiateData
 	latestReqCh    chan chan dataproviders.PvData
 	latestUpdateCh chan dataproviders.PvData
+	terminateCh    chan int
 	latestErr      error
 	client         *http.Client
 }
@@ -27,7 +28,9 @@ const INACTIVE_TIMOUT = 30 //secs
 
 // This will handle the latestdata we have
 // Syncronized getter and setter of the data
-func latestData(reqCh chan chan dataproviders.PvData, updateCh chan dataproviders.PvData) {
+func latestData(reqCh chan chan dataproviders.PvData, 
+                updateCh chan dataproviders.PvData,
+                terminateCh chan int) {
 	// Wait here until first data is received 
 	latestData := <-updateCh
 
@@ -36,6 +39,9 @@ func latestData(reqCh chan chan dataproviders.PvData, updateCh chan dataprovider
 		case latestData = <-updateCh:
 		case repCh := <-reqCh:
 			repCh <- latestData
+		case <- terminateCh:
+			log.Debug("Terminated latestData")
+			return
 		}
 	}
 }
@@ -51,15 +57,16 @@ func NewDataProvider(initiateData dataproviders.InitiateData, term dataproviders
 	jfy := jfyDataProvider{initiateData,
 		make(chan chan dataproviders.PvData),
 		make(chan dataproviders.PvData),
+		make(chan int),
 		nil,
 		client}
-	go RunUpdates(jfy.client, jfy.latestUpdateCh, term)
-	go latestData(jfy.latestReqCh, jfy.latestUpdateCh)
+	go RunUpdates(jfy.client, jfy.latestUpdateCh, term, jfy.terminateCh)
+	go latestData(jfy.latestReqCh, jfy.latestUpdateCh, jfy.terminateCh)
 
 	return jfy
 }
 
-func RunUpdates(client *http.Client, updateCh chan dataproviders.PvData, term dataproviders.TerminateCallback) {
+func RunUpdates(client *http.Client, updateCh chan dataproviders.PvData, term dataproviders.TerminateCallback, termCh chan int) {
 	// Refresh ticker
 	ticker := time.NewTicker(time.Second * 5)
 	tickerCh := ticker.C
@@ -91,6 +98,7 @@ func RunUpdates(client *http.Client, updateCh chan dataproviders.PvData, term da
 			ticker.Stop()
 			terminateTicker.Stop()
 			term()
+			termCh <- 0
 			log.Info("RunUpdates exited")
 			return
 		}
@@ -99,6 +107,7 @@ func RunUpdates(client *http.Client, updateCh chan dataproviders.PvData, term da
 	ticker.Stop()
 	terminateTicker.Stop()
 	term()
+	termCh <- 0
 	log.Info("RunUpdates exited")
 }
 
