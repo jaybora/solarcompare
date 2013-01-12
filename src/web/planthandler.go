@@ -9,21 +9,27 @@ import (
 )
 
 type PlantDataGetter interface {
-	PlantData(plantkey string) plantdata.PlantData
+	PlantData(plantkey string) *plantdata.PlantData
 }
 
 func PlantHandler(w http.ResponseWriter, r *http.Request, 
 		c *controller.Controller, pg PlantDataGetter) {
 	plantkey := plantKey(r.URL.String())
-    fmt.Fprintf(w, plantkey)
     
-    //Lookup plantdata
+    
+    //Lookup plantdata	
     plantdata := pg.PlantData(plantkey)
+    
+    if plantdata == nil {
+    	err := fmt.Errorf("404: Plant %s not found", plantkey)
+    	http.Error(w, err.Error(), http.StatusNotFound)
+    	return
+    }
     
     // Go to the controller with the plantdata
     // The controller will start up a plant service if its not allready live
     // We get the provider from the controller
-    provider, err := c.Provider(&plantdata)
+    provider, err := c.Provider(plantdata)
     if err != nil {
     	http.Error(w, err.Error(), http.StatusInternalServerError)
     	return
