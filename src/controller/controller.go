@@ -42,7 +42,7 @@ func (c *Controller) Provider(plantdata *plantdata.PlantData) (provider dataprov
 		// No live, startup a new provider
 		err = c.startNewProvider(plantdata)
 		if err != nil {
-			return 
+			return
 		}
 		lock.RLock()
 		provider, _ = c.live[plantdata.PlantKey]
@@ -55,12 +55,12 @@ func (c *Controller) Provider(plantdata *plantdata.PlantData) (provider dataprov
 func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
 	json, _ := plantdata.ToJson()
 	log.Printf("Starting new dataprovider for plant %s", json)
-	
-	f := func() {
-		c.providerTerminated(plantdata.PlantKey)
-	}
-	
-	p, err := dispatcher.Provider(plantdata.DataProvider, plantdata.InitiateData, f)
+
+	p, err := dispatcher.Provider(plantdata.DataProvider,
+		plantdata.InitiateData,
+		func() {
+			c.providerTerminated(plantdata.PlantKey)
+		})
 	if err != nil {
 		return err
 	}
@@ -75,5 +75,5 @@ func (c *Controller) providerTerminated(plantKey string) {
 	log.Printf("Controller, plantkey %s gone offline", plantKey)
 	lock.Lock()
 	delete(c.live, plantKey)
-	lock.Unlock()	
+	lock.Unlock()
 }
