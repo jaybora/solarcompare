@@ -3,8 +3,8 @@ package dataproviders
 import (
 	"time"
 	"encoding/json"
-	"log"
 )
+
 
 type PvData struct {
 	LatestUpdate time.Time
@@ -18,7 +18,7 @@ func (data *PvData) ToJson() (b []byte) {
 	data.LatestUpdate = time.Now()
 	b, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		log.Printf("ERROR on mashalling pvdata to JSON: %s", err.Error())
+		log.Failf("ERROR on mashalling pvdata to JSON: %s", err.Error())
 	}
 	return
 }
