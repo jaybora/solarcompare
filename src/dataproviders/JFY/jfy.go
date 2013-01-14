@@ -26,31 +26,12 @@ var log = logger.NewLogger(logger.TRACE, "Dataprovider: JFY:")
 const MAX_ERRORS = 10
 const INACTIVE_TIMOUT = 30 //secs
 
-// This will handle the latestdata we have
-// Syncronized getter and setter of the data
-func latestData(reqCh chan chan dataproviders.PvData, 
-                updateCh chan dataproviders.PvData,
-                terminateCh chan int) {
-	// Wait here until first data is received 
-	latestData := <-updateCh
-
-	for {
-		select {
-		case latestData = <-updateCh:
-		case repCh := <-reqCh:
-			repCh <- latestData
-		case <- terminateCh:
-			log.Debug("Terminated latestData")
-			return
-		}
-	}
-}
-
 func (jfy *jfyDataProvider) Name() string {
 	return "JFY"
 }
 
-func NewDataProvider(initiateData dataproviders.InitiateData, term dataproviders.TerminateCallback) jfyDataProvider {
+func NewDataProvider(initiateData dataproviders.InitiateData, 
+                     term dataproviders.TerminateCallback) jfyDataProvider {
 	log.Debug("New JFY dataprovider")
 	client := &http.Client{}
 
@@ -60,55 +41,25 @@ func NewDataProvider(initiateData dataproviders.InitiateData, term dataproviders
 		make(chan int),
 		nil,
 		client}
-	go RunUpdates(jfy.client, jfy.latestUpdateCh, term, jfy.terminateCh)
-	go latestData(jfy.latestReqCh, jfy.latestUpdateCh, jfy.terminateCh)
+	go dataproviders.RunUpdates(
+		func(pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
+			pv, err = updatePvData(client)
+			return
+		}, 
+		func(pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
+			return
+		}, 
+		time.Second * 5,
+		time.Minute * 5,
+		time.Minute * 1,
+		jfy.latestUpdateCh,
+		jfy.latestReqCh,
+		term,
+		jfy.terminateCh,
+		MAX_ERRORS)
+	go dataproviders.LatestPvData(jfy.latestReqCh, jfy.latestUpdateCh, jfy.terminateCh)
 
 	return jfy
-}
-
-func RunUpdates(client *http.Client, updateCh chan dataproviders.PvData, term dataproviders.TerminateCallback, termCh chan int) {
-	// Refresh ticker
-	ticker := time.NewTicker(time.Second * 5)
-	tickerCh := ticker.C
-	// Terminate ticker
-	terminateTicker := time.NewTicker(time.Second * INACTIVE_TIMOUT)
-	terminateCh := terminateTicker.C
-
-	errCounter := 0
-
-	for {
-		pv, err := updatePvData(client)
-		if err != nil {
-
-			errCounter++
-			log.Infof("There was on error on updatePvData: %s, error counter is now %d", err.Error(), errCounter)
-		} else {
-			updateCh <- pv
-		}
-		if errCounter > MAX_ERRORS {
-			break
-		}
-		//Wait for rerequest
-		log.Debug("Waiting on tickers...")
-		select {
-		case <-tickerCh:
-			// Restart terminate ticker
-		case <-terminateCh:
-			log.Debug("Terminate ticker")
-			ticker.Stop()
-			terminateTicker.Stop()
-			term()
-			termCh <- 0
-			log.Info("RunUpdates exited")
-			return
-		}
-
-	}
-	ticker.Stop()
-	terminateTicker.Stop()
-	term()
-	termCh <- 0
-	log.Info("RunUpdates exited")
 }
 
 // Update PvData
