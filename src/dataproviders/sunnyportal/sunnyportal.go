@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -61,14 +62,16 @@ func (sunny *sunnyDataProvider) Name() string {
 	return "SunnyPortal"
 }
 
-func NewDataProvider(initiateData dataproviders.InitiateData, term dataproviders.TerminateCallback) sunnyDataProvider {
+func NewDataProvider(initiateData dataproviders.InitiateData,
+	term dataproviders.TerminateCallback) (sunny sunnyDataProvider, err error) {
+
 	log.Debug("New dataprovider")
 	jar := new(Jar)
 	client := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
 		Jar: jar}
 
-	sunny := sunnyDataProvider{initiateData,
+	sunny = sunnyDataProvider{initiateData,
 		make(chan chan dataproviders.PvData),
 		make(chan dataproviders.PvData),
 		make(chan int),
@@ -76,12 +79,43 @@ func NewDataProvider(initiateData dataproviders.InitiateData, term dataproviders
 		client,
 		""}
 
-	err := sunny.initiate()
+	// First request will start a session on the server
+	// And give us cookies and viewstate that we need when logging in
+	err = sunny.initiate()
+	if err != nil {
+		return
+	}
+	err = sunny.login(initiateData.UserName, initiateData.Password)
+	if err != nil {
+		return
+	}
+	
 
-	go dataproviders.RunUpdates(sunny.client, sunny.latestUpdateCh, term, sunny.terminateCh)
-	go dataproviders.LatestPvData(sunny.latestReqCh, sunny.latestUpdateCh, sunny.terminateCh)
+	go dataproviders.RunUpdates(
+		func(pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
+			pac, err := updatePacData(client)
+			pvin.PowerAc = pac
+			pv = pvin
+			return
+		},
+		func(pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
+			return
+		},
+		time.Second*5,
+		time.Minute*5,
+		time.Minute*1,
+		sunny.latestUpdateCh,
+		sunny.latestReqCh,
+		term,
+		sunny.terminateCh,
+		MAX_ERRORS)
 
-	return sunny
+	go dataproviders.LatestPvData(
+		sunny.latestReqCh,
+		sunny.latestUpdateCh,
+		sunny.terminateCh)
+
+	return 
 }
 
 func (c *sunnyDataProvider) initiate() error {
@@ -91,7 +125,7 @@ func (c *sunnyDataProvider) initiate() error {
 		return err
 	}
 	defer resp.Body.Close()
-	log.Tracef("Got a %s reply", resp.Status)
+	log.Tracef("Got a %s reply on initiate cookies and viewstate", resp.Status)
 
 	reg, err := regexp.Compile("<input type=\"hidden\" name=\"__VIEWSTATE\" id=\"__VIEWSTATE\" value=\"[^\"]*")
 	if err != nil {
@@ -106,24 +140,64 @@ func (c *sunnyDataProvider) initiate() error {
 	return nil
 }
 
-func (c *sunnyDataProvider) pac() (json []byte, err error) {
-	resp, err := c.client.Get(pacUrl)
+func (c *sunnyDataProvider) login(username string, password string) error {
+	formData := url.Values{}
+	formData.Add("__VIEWSTATE", c.viewstate)
+	formData.Add("ctl00$ContentPlaceHolder1$Logincontrol1$txtUserName", username)
+	formData.Add("ctl00$ContentPlaceHolder1$Logincontrol1$txtPassword", password)
+	formData.Add("ctl00$ContentPlaceHolder1$Logincontrol1$LoginBtn", "Login")
+	log.Debugf("Posting to %s, with body: %s", loginUrl, formData)
+	resp, err := c.client.PostForm(loginUrl, formData)
+	if err != nil {
+		log.Fail(err.Error())
+		return err
+	}
+
+	c.printCookies()
+
+	if resp.StatusCode == 302 {
+		log.Debug("Login success!")
+	} else {
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.Failf("Login failed, http status codes was %s\n%s", resp.Status, b)
+		return fmt.Errorf("Login to portal failed. Wrong username and password")
+	}
+	return nil
+}
+
+func updatePacData(c *http.Client) (pac uint16, err error) {
+	resp, err := c.Get(pacUrl)
 	if err != nil {
 		log.Fail(err.Error())
 		return
 	}
 	defer resp.Body.Close()
 	log.Debugf("Got a %s reply", resp.Status)
-	json, _ = ioutil.ReadAll(resp.Body)
+	jsonbytes, _ := ioutil.ReadAll(resp.Body)
 	statusCode := resp.StatusCode
 	if statusCode != 200 {
-		err := fmt.Errorf(
-			"Cannot load realtime values in dataprovider. Received http status %s", statusCode)
+		err = fmt.Errorf(
+			"Cannot load realtime values in dataprovider. Received http status %d", statusCode)
+		return
 	}
+	log.Tracef("Received Pac json from sma: %s", jsonbytes)
+	pacReply := smaPacReply{}
+	err = json.Unmarshal(jsonbytes, &pacReply)
+	if err != nil {
+		log.Fail(err.Error())
+		return
+	}
+	pacint, err := strconv.Atoi(pacReply.CurrentPlantPower)
+	
+	if err != nil {
+		log.Fail(err.Error())
+		return
+	}
+	pac = uint16(pacint)
 	return
 }
-
-func (c *sunnyDataProvider) DailyProduction() (pvDaily pv.PvDataDaily, err error) {
+/*
+func (c *sunnyDataProvider) DailyProduction(client *http.Client) (pvDaily pv.PvDataDaily, err error) {
 	log.Printf("Getting from %s", csvPostUrl)
 	resp, err := c.client.Get(csvPostUrl)
 	if err != nil {
@@ -208,11 +282,11 @@ func (c *sunnyDataProvider) DailyProduction() (pvDaily pv.PvDataDaily, err error
 
 	return
 }
-
+*/
 func parseSmaDateToKey(date string) string {
 	t, err := time.Parse(smaCsvDateFormat, date)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Info(err.Error())
 	}
 	return t.Format(keyDateFormat)
 }
@@ -231,9 +305,9 @@ func (sunny *sunnyDataProvider) PvData() (pv dataproviders.PvData, err error) {
 }
 
 func (c *sunnyDataProvider) printCookies() {
-	log.Print("Cookies in store is now:")
+	log.Trace("Cookies in store is now:")
 	for _, cookie := range c.client.Jar.Cookies(nil) {
-		log.Printf("    %s: %s", cookie.Name, cookie.Value)
+		log.Tracef("    %s: %s", cookie.Name, cookie.Value)
 	}
 
 }

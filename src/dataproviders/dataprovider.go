@@ -49,7 +49,8 @@ func RunUpdates(updateFast UpdatePvData,
 	term TerminateCallback,
 	termCh chan int,
 	errClose int) {
-	
+	log.Trace("Started a RunUpdates rutine")
+
 	// Fast Ticker
 	fastTick := time.NewTicker(fastTime)
 	fastTickCh := fastTick.C
@@ -61,17 +62,24 @@ func RunUpdates(updateFast UpdatePvData,
 	terminateCh := terminateTicker.C
 
 	errCounter := 0
+	firstRun := true
 
 	for {
-		pvCh := make(chan PvData)
-	    reqCh <- pvCh
-	    pv := <- pvCh
+		// If this is first run, then reqCh will block
+		// So we start with a zero'ed pv
+		pv := PvData{}
+		if !firstRun {
+			pvCh := make(chan PvData)
+			reqCh <- pvCh
+			pv = <-pvCh
+		}
 		pv, err := updateFast(pv)
 		if err != nil {
 			errCounter++
 			log.Infof("There was on error on updatePvData: %s, error counter is now %d", err.Error(), errCounter)
 		} else {
 			updateCh <- pv
+			firstRun = false
 		}
 		if errCounter > errClose {
 			break
@@ -83,8 +91,8 @@ func RunUpdates(updateFast UpdatePvData,
 			// Restart terminate ticker
 		case <-slowTickCh:
 			pvCh := make(chan PvData)
-		    reqCh <- pvCh
-		    pv := <- pvCh
+			reqCh <- pvCh
+			pv := <-pvCh
 			pv, err := updateSlow(pv)
 			if err != nil {
 				errCounter++
