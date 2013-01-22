@@ -7,6 +7,7 @@ import (
 	"plantdata"
 	"dataproviders"
 	"log"
+	"encoding/json"
 )
 
 type staticPlants struct {
@@ -21,7 +22,7 @@ var plantmap = map[string]plantdata.PlantData {
 	"peterlarsen": plantdata.PlantData{PlantKey: "peterlarsen", 
 	                           Name: "Guldnældevænget 5",
 	                           DataProvider: dataproviders.SunnyPortal,
-	                           InitiateData: dataproviders.InitiateData{"jesper@jbr.dk", "cidaxura"}},
+	                           InitiateData: dataproviders.InitiateData{"jesper@jbr.dk", "cidaxura", "2"}},
 }
 
 func main() {
@@ -29,10 +30,10 @@ func main() {
 	controller := controller.NewController()
 
 	http.HandleFunc("/", web.DefaultHandler)
-	http.HandleFunc("/plant/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/plants/", func(w http.ResponseWriter, r *http.Request) {
 		web.PlantHandler(w, r, &controller, plants)
 	})
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8090", nil)
 }
 
 func (s staticPlants)PlantData(plantkey string) *plantdata.PlantData {
@@ -42,4 +43,10 @@ func (s staticPlants)PlantData(plantkey string) *plantdata.PlantData {
 		return nil
 	}
 	return &plant;
+}
+
+func (s staticPlants)ToJson() []byte {
+	log.Print("Getting all plants as json")
+	b, _ := json.MarshalIndent(&s.plants, "", "   ")
+	return b;
 }
