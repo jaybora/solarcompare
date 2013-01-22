@@ -24,5 +24,7 @@ func (data *PvData) ToJson() (b []byte) {
 }
 
 
-
+const KeyDateFormat = "20060102"
+// Key is YYYYMMDD
+type PvDataDaily map[string]uint16
 
