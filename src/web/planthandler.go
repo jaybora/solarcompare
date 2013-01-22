@@ -10,11 +10,16 @@ import (
 
 type PlantDataGetter interface {
 	PlantData(plantkey string) *plantdata.PlantData
+	ToJson() []byte
 }
 
 func PlantHandler(w http.ResponseWriter, r *http.Request, 
 		c *controller.Controller, pg PlantDataGetter) {
 	plantkey := plantKey(r.URL.String())
+	if plantkey == "" {
+		listPlants(w, pg)
+		return
+	}
     
     
     //Lookup plantdata	
@@ -45,6 +50,12 @@ func PlantHandler(w http.ResponseWriter, r *http.Request,
 	w.Write(pvdata.ToJson())
     
 }
+
+// List all known plants if no plantkey is given
+func listPlants(w http.ResponseWriter, pg PlantDataGetter) {
+	w.Header().Set("Content-Type", "application/json;  charset=utf-8")
+	w.Write(pg.ToJson())
+} 
 
 func plantKey(url string) string {
 	parts := strings.Split(url, "/")
