@@ -22,7 +22,7 @@ func NewLogger(level int, module string) Logger {
 
 func (l *Logger) Tracef(s string, v ...interface{}) {
 	if l.Level == TRACE {
-		log.Printf(l.Module + ": " + s,v)
+		log.Printf(l.Module + ": " + s,v...)
 	}
 }
 func (l *Logger) Trace(s string) {
@@ -32,7 +32,7 @@ func (l *Logger) Trace(s string) {
 }
 func (l *Logger) Debugf(s string, v ...interface{}) {
 	if l.Level <= DEBUG {
-		log.Printf(l.Module + ": " + s,v)
+		log.Printf(l.Module + ": " + s,v...)
 	}
 }
 func (l *Logger) Debug(s string) {
@@ -42,7 +42,7 @@ func (l *Logger) Debug(s string) {
 }
 func (l *Logger) Infof(s string, v ...interface{}) {
 	if l.Level <= INFO {
-		log.Printf(l.Module + ": " + s,v)
+		log.Printf(l.Module + ": " + s,v...)
 	}
 }
 func (l *Logger) Info(s string) {
@@ -52,7 +52,7 @@ func (l *Logger) Info(s string) {
 }
 func (l *Logger) Failf(s string, v ...interface{}) {
 	if l.Level <= FAIL {
-		log.Printf(l.Module + ": " + s,v)
+		log.Printf(l.Module + ": " + s,v...)
 	}
 }
 func (l *Logger) Fail(s string) {
