@@ -12,23 +12,23 @@ type InverterData struct {
 }
 
 type CellData struct {
-	CellVendor       string
-	CellModel        string
-	CellCapatity     uint16
+	CellVendor   string
+	CellModel    string
+	CellCapatity uint16
 }
 
 type PlantData struct {
-	PlantKey         string
-	Name             string
-	Latitide         string
-	Longitude        string
-	Picture          []byte
-	CellData         CellData
-	InverterData     InverterData
-	InitiateData     dataproviders.InitiateData
-	PvData           dataproviders.PvData //Live data
+	PlantKey     string
+	Name         string
+	Latitide     string
+	Longitude    string
+	Picture      []byte
+	CellData     CellData
+	InverterData InverterData
+	InitiateData dataproviders.InitiateData `json:"-"`
+	PvData       dataproviders.PvData       `json:"-"` //Live data 
 	// The dataproviders implementation
-	DataProvider     int
+	DataProvider int
 }
 
 func (data *PlantData) ToJson() (b []byte, err error) {
