@@ -8,6 +8,7 @@ import (
 type InitiateData struct {
 	UserName string
 	Password string
+	PlantNo  string
 }
 
 var log = logger.NewLogger(logger.TRACE, "Dataprovider: generic: ")
@@ -74,6 +75,9 @@ func RunUpdates(updateFast UpdatePvData,
 			pv = <-pvCh
 		}
 		pv, err := updateFast(pv)
+		if firstRun {
+			pv, err = updateSlow(pv)
+		}
 		if err != nil {
 			errCounter++
 			log.Infof("There was on error on updatePvData: %s, error counter is now %d", err.Error(), errCounter)
