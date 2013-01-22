@@ -2,12 +2,16 @@ package web
 
 import (
 	"net/http"
-	"fmt"
+	"text/template"
 )
 
 
 func DefaultHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Only <a href='/json'>json</a> output is available at the moment!")
+	t, err := template.ParseFiles("index.html")
+	if err != nil {
+		http.Error(w, "Cannot find html template, " + err.Error(), http.StatusInternalServerError)
+		return 
+	}
+	
+	t.Execute(w, nil)
 }
-
-
