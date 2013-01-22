@@ -1,6 +1,7 @@
 package sunnyportal
 
 import (
+	"bufio"
 	"crypto/tls"
 	"dataproviders"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -53,10 +55,11 @@ const loginUrl = "http://www.sunnyportal.com/Templates/Start.aspx"
 const pacUrl = "http://www.sunnyportal.com/Dashboard"
 const csvPostUrl = "http://sunnyportal.com/FixedPages/EnergyAndPower.aspx"
 const csvUrl = "http://sunnyportal.com/Templates/DownloadDiagram.aspx?down=diag"
+const plantSelectUrl = "http://sunnyportal.com/Templates/PlantMonitoring.aspx"
 
 const keyDateFormat = "20060102"
 const smaCsvDateFormat = "1/2/06"
-const smaWebDateFormat = "01/02/2006"
+const smaWebDateFormat = "1/2/2006"
 
 func (sunny *sunnyDataProvider) Name() string {
 	return "SunnyPortal"
@@ -89,7 +92,10 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 	if err != nil {
 		return
 	}
-	
+	err = sunny.setPlantNo(initiateData.PlantNo)
+	if err != nil {
+		return
+	}
 
 	go dataproviders.RunUpdates(
 		func(pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
@@ -98,12 +104,20 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 			pv = pvin
 			return
 		},
-		func(pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
+		func(pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
+			pvdaily, err := updateDailyProduction(client)
+			today, ok := pvdaily[nowDate()]
+			if ok {
+				pvin.EnergyToday = today
+			} else {
+				pvin.EnergyToday = 9999
+			}
+			pv = pvin
 			return
 		},
 		time.Second*5,
 		time.Minute*5,
-		time.Minute*1,
+		time.Minute*30,
 		sunny.latestUpdateCh,
 		sunny.latestReqCh,
 		term,
@@ -115,7 +129,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		sunny.latestUpdateCh,
 		sunny.terminateCh)
 
-	return 
+	return
 }
 
 func (c *sunnyDataProvider) initiate() error {
@@ -165,6 +179,35 @@ func (c *sunnyDataProvider) login(username string, password string) error {
 	return nil
 }
 
+func (c *sunnyDataProvider) setPlantNo(plantno string) error {
+	formData := url.Values{}
+	formData.Add("__EVENTTARGET", fmt.Sprintf("ctl00$NavigationLeftMenuControl$0_%s", plantno))
+	formData.Add("ctl00$HiddenPlantOID", "7a54f1f3-dbe9-4939-8e5b-d11e516c8093")
+	formData.Add("__VIEWSTATE", "")
+	formData.Add("__EVENTARGUMENT", "")
+	formData.Add("ctl00$_scrollPosHidden", "")
+	formData.Add("LeftMenuNode_0", "1")
+	formData.Add("LeftMenuNode_1", "1")
+	formData.Add("LeftMenuNode_2", "0")
+
+	log.Debugf("Posting to %s, with body: %s", plantSelectUrl, formData)
+	resp, err := c.client.PostForm(plantSelectUrl, formData)
+	if err != nil {
+		log.Fail(err.Error())
+		return err
+	}
+
+	if resp.StatusCode == 302 {
+		log.Debug("Plant selection success!")
+	} else {
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.Failf("Plant selection failed, http status codes was %s\n%s", resp.Status, b)
+		//return fmt.Errorf("Switch to plantno %s failed.", plantno)
+	}
+	return nil
+}
+
+
 func updatePacData(c *http.Client) (pac uint16, err error) {
 	resp, err := c.Get(pacUrl)
 	if err != nil {
@@ -188,7 +231,7 @@ func updatePacData(c *http.Client) (pac uint16, err error) {
 		return
 	}
 	pacint, err := strconv.Atoi(pacReply.CurrentPlantPower)
-	
+
 	if err != nil {
 		log.Fail(err.Error())
 		return
@@ -196,26 +239,33 @@ func updatePacData(c *http.Client) (pac uint16, err error) {
 	pac = uint16(pacint)
 	return
 }
-/*
-func (c *sunnyDataProvider) DailyProduction(client *http.Client) (pvDaily pv.PvDataDaily, err error) {
-	log.Printf("Getting from %s", csvPostUrl)
-	resp, err := c.client.Get(csvPostUrl)
+
+func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDaily, err error) {
+	log.Debugf("Getting from %s", csvPostUrl)
+	resp, err := client.Get(csvPostUrl)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fail(err.Error())
+		return
 	}
 	defer resp.Body.Close()
+	defer func() {
+        if r := recover(); r != nil {
+            fmt.Println("Recovered in updateDailyProduction", r)
+        }
+    }()
 	b, _ := ioutil.ReadAll(resp.Body)
 
-	log.Printf("Received status %d on pre request", resp.StatusCode)
+	log.Debugf("Received status %d on pre request", resp.StatusCode)
 
 	reg, err := regexp.Compile("<input type=\"hidden\" name=\"__ctl00\\$ContentPlaceHolder1\\$UserControlShowEnergyAndPower1\\$_diagram_VIEWSTATE\" id=\"__ctl00\\$ContentPlaceHolder1\\$UserControlShowEnergyAndPower1\\$_diagram_VIEWSTATE\" value=\"[^\"]*")
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fail(err.Error())
+		return
 	}
 
 	found := reg.Find(b)
 	viewstate := string(found[196:])
-	log.Printf("Viewstate was found as %s", viewstate)
+	log.Debugf("Viewstate was found as %s", viewstate)
 
 	formData := url.Values{}
 	//formData.Add("__EVENTTARGET", "")
@@ -234,35 +284,37 @@ func (c *sunnyDataProvider) DailyProduction(client *http.Client) (pvDaily pv.PvD
 	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowEnergyAndPower1$_datePicker$textBox",
 		time.Now().Format(smaWebDateFormat))
 	formData.Add("ctl00$ContentPlaceHolder1$FixPageWidth", "720")
-	formData.Add("ctl00$HiddenPlantOID", "facb16e7-c40d-4316-a853-48c7620d1745")
-	log.Printf("Posting to %s, with body: %s", csvPostUrl, formData)
-	resp, err = c.client.PostForm(csvPostUrl, formData)
+	//formData.Add("ctl00$HiddenPlantOID", "facb16e7-c40d-4316-a853-48c7620d1745")
+	log.Debugf("Posting to %s, with body: %s", csvPostUrl, formData)
+	resp, err = client.PostForm(csvPostUrl, formData)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fail(err.Error())
+		return
 	}
 	defer resp.Body.Close()
-	c.printCookies()
+	//c.printCookies()
 	b, _ = ioutil.ReadAll(resp.Body)
 
 	if resp.StatusCode == 200 || resp.StatusCode == 302 {
-		log.Printf("Post to %s success!", csvPostUrl)
+		log.Debugf("Post to %s success!", csvPostUrl)
 	} else {
 		err = fmt.Errorf("Post to %s failed, http status codes was %s\n%s", csvPostUrl, resp.Status, b)
 		return
 	}
 
-	log.Printf("Getting from %s", csvUrl)
-	resp, err = c.client.Get(csvUrl)
+	log.Debugf("Getting from %s", csvUrl)
+	resp, err = client.Get(csvUrl)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fail(err.Error())
+		return
 	}
 	defer resp.Body.Close()
 	//csv, _ := ioutil.ReadAll(resp.Body)
 
-	log.Printf("Received status %s on csv request", resp.StatusCode)
+	log.Debugf("Received status %s on csv request", resp.StatusCode)
 
 	reader := bufio.NewReader(resp.Body)
-	log.Print("CSV received:")
+	log.Debug("CSV received:")
 	// Jump over first line
 	_, _ = reader.ReadString('\n')
 	pvDaily = make(map[string]uint16)
@@ -275,14 +327,14 @@ func (c *sunnyDataProvider) DailyProduction(client *http.Client) (pvDaily pv.PvD
 		if len(cols) < 2 {
 			continue
 		}
-		log.Printf("Kl %s, production %s", cols[0], cols[1])
+		log.Tracef("Date %s, production %s", cols[0], cols[1])
 		prod, _ := strconv.ParseFloat(cols[1], 64)
 		pvDaily[parseSmaDateToKey(cols[0])] = uint16(prod * 1000)
 	}
 
 	return
 }
-*/
+
 func parseSmaDateToKey(date string) string {
 	t, err := time.Parse(smaCsvDateFormat, date)
 	if err != nil {
