@@ -21,7 +21,7 @@ type jfyDataProvider struct {
 
 const GetUrl = "http://cts.jbr.dk:81/json"
 
-var log = logger.NewLogger(logger.TRACE, "Dataprovider: JFY:")
+var log = logger.NewLogger(logger.INFO, "Dataprovider: JFY:")
 
 const MAX_ERRORS = 10
 const INACTIVE_TIMOUT = 30 //secs
@@ -47,11 +47,13 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 			return
 		}, 
 		func(pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
+			// To prevent zero when provider is starting up
+			pv = pvint
 			return
 		}, 
 		time.Second * 5,
 		time.Minute * 5,
-		time.Minute * 1,
+		time.Minute * 30,
 		jfy.latestUpdateCh,
 		jfy.latestReqCh,
 		term,
