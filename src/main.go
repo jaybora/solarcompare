@@ -20,9 +20,17 @@ var plantmap = map[string]plantdata.PlantData {
 	                           Name: "Klarinetvej 25",
 	                           DataProvider: dataproviders.FJY},
 	"peterlarsen": plantdata.PlantData{PlantKey: "peterlarsen", 
-	                           Name: "Guldnældevænget 5",
+	                           Name: "Guldnældevænget 35",
+	                           DataProvider: dataproviders.SunnyPortal,
+	                           InitiateData: dataproviders.InitiateData{"jesper@jbr.dk", "cidaxura", "3"}},
+	"kaup": plantdata.PlantData{PlantKey: "kaup", 
+	                           Name: "Pandebjergvej",
 	                           DataProvider: dataproviders.SunnyPortal,
 	                           InitiateData: dataproviders.InitiateData{"jesper@jbr.dk", "cidaxura", "2"}},
+	"gldv33": plantdata.PlantData{PlantKey: "gldv33", 
+	                           Name: "Guldnældevænget 33",
+	                           DataProvider: dataproviders.SunnyPortal,
+	                           InitiateData: dataproviders.InitiateData{"jesper@jbr.dk", "cidaxura", "1"}},
 }
 
 func main() {

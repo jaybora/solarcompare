@@ -27,6 +27,16 @@
   		$('#plpac').html(data.PowerAc)
   		$('#pletoday').html(data.EnergyToday)
   	} )
+  	$.getJSON( "plants/kaup", function(data) {
+  		console.log('Got reply, updating values on page...')
+  		$('#kauppac').html(data.PowerAc)
+  		$('#kaupetoday').html(data.EnergyToday)
+  	} )
+  	$.getJSON( "plants/gldv33", function(data) {
+  		console.log('Got reply, updating values on page...')
+  		$('#gldv33pac').html(data.PowerAc)
+  		$('#gldv33etoday').html(data.EnergyToday)
+  	} )
   }
   </script>
 <style type="text/css">
@@ -38,6 +48,9 @@ table.comp th {
 	padding: 10px;
 	border-bottom: 2px solid black;
 	
+}
+body {
+	font-size: 10pt;
 }
 </style>
 
@@ -59,6 +72,8 @@ table.comp th {
 						<th style="text-align: left"></th>
 						<th>Jesper</th>
 						<th>Peter</th>
+						<th>Glen</th>
+						<th>Rune</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -66,11 +81,15 @@ table.comp th {
 						<td><b>Aktuel produktion</b></td>
 						<td style="text-align: right"><span id="jbrpac"></span> watt</td>
 						<td style="text-align: right"><span id="plpac"></span> watt</td>
+						<td style="text-align: right"><span id="kauppac"></span> watt</td>
+						<td style="text-align: right"><span id="gldv33pac"></span> watt</td>
 					</tr>
 					<tr>
 						<td><b>Produktion i dag</b></td>
-						<td style="text-align: right"><span id="jbretoday"></span> kW/t</td>
-						<td style="text-align: right"><span id="pletoday"></span> kW/t</td>
+						<td style="text-align: right"><span id="jbretoday"></span> Wh</td>
+						<td style="text-align: right"><span id="pletoday"></span> Wh</td>
+						<td style="text-align: right"><span id="kaupetoday"></span> Wh</td>
+						<td style="text-align: right"><span id="gldv33etoday"></span> Wh</td>
 					</tr>
 				</tbody>
 			</table>
