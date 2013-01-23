@@ -24,6 +24,7 @@ type sunnyDataProvider struct {
 	latestErr      error
 	client         *http.Client
 	viewstate      string //Something that sma portal uses, must be posted to login
+	plantname      string
 
 }
 
@@ -52,17 +53,18 @@ const INACTIVE_TIMOUT = 300 //secs
 
 const startUrl = "http://www.sunnyportal.com/Templates/Start.aspx"
 const loginUrl = "http://www.sunnyportal.com/Templates/Start.aspx"
+const profileUrl = "http://www.sunnyportal.com/FixedPages/PlantProfile.aspx"
 const pacUrl = "http://www.sunnyportal.com/Dashboard"
 const csvPostUrl = "http://sunnyportal.com/FixedPages/EnergyAndPower.aspx"
 const csvUrl = "http://sunnyportal.com/Templates/DownloadDiagram.aspx?down=diag"
-const plantSelectUrl = "http://sunnyportal.com/Templates/PlantMonitoring.aspx"
+const plantSelectUrl = "http://sunnyportal.com/FixedPages/PlantProfile.aspx"
 
 const keyDateFormat = "20060102"
 const smaCsvDateFormat = "1/2/06"
 const smaWebDateFormat = "1/2/2006"
 
 func (sunny *sunnyDataProvider) Name() string {
-	return "SunnyPortal"
+	return sunny.plantname
 }
 
 func NewDataProvider(initiateData dataproviders.InitiateData,
@@ -80,6 +82,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		make(chan int),
 		nil,
 		client,
+		"",
 		""}
 
 	// First request will start a session on the server
@@ -92,10 +95,22 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 	if err != nil {
 		return
 	}
+
+	_, err = sunny.plantName()
+	if err != nil {
+		return
+	}
+
 	err = sunny.setPlantNo(initiateData.PlantNo)
 	if err != nil {
 		return
 	}
+	
+	sunny.plantname, err = sunny.plantName()
+	if err != nil {
+		return
+	}
+	
 
 	go dataproviders.RunUpdates(
 		func(pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
@@ -182,7 +197,7 @@ func (c *sunnyDataProvider) login(username string, password string) error {
 func (c *sunnyDataProvider) setPlantNo(plantno string) error {
 	formData := url.Values{}
 	formData.Add("__EVENTTARGET", fmt.Sprintf("ctl00$NavigationLeftMenuControl$0_%s", plantno))
-	formData.Add("ctl00$HiddenPlantOID", "7a54f1f3-dbe9-4939-8e5b-d11e516c8093")
+	//formData.Add("ctl00$HiddenPlantOID", "facb16e7-c40d-4316-a853-48c7620d1745")
 	formData.Add("__VIEWSTATE", "")
 	formData.Add("__EVENTARGUMENT", "")
 	formData.Add("ctl00$_scrollPosHidden", "")
@@ -202,11 +217,41 @@ func (c *sunnyDataProvider) setPlantNo(plantno string) error {
 	} else {
 		b, _ := ioutil.ReadAll(resp.Body)
 		log.Failf("Plant selection failed, http status codes was %s\n%s", resp.Status, b)
-		//return fmt.Errorf("Switch to plantno %s failed.", plantno)
+		return fmt.Errorf("Switch to plantno %s failed.", plantno)
 	}
 	return nil
 }
 
+
+func  (c *sunnyDataProvider) plantName() (name string, err error) {
+	log.Debugf("Getting from %s", profileUrl)
+	resp, err := c.client.Get(profileUrl)
+	if err != nil {
+		log.Fail(err.Error())
+		return
+	}
+	defer resp.Body.Close()
+	defer func() {
+        if r := recover(); r != nil {
+            fmt.Println("Recovered in plantName", r)
+        }
+    }()
+	b, _ := ioutil.ReadAll(resp.Body)
+
+	log.Debugf("Received status %d on request", resp.StatusCode)
+	//log.Tracef("%s", b)
+
+	reg, err := regexp.Compile("<span id=\"ctl00_ContentPlaceHolder1_PlantProfileLabel\">.*</span>")
+	if err != nil {
+		log.Fail(err.Error())
+		return
+	}
+
+	found := reg.Find(b)
+	name = string(found[71:len(found)-7])
+	log.Debugf("Plantname was found as %s", name)
+	return
+}
 
 func updatePacData(c *http.Client) (pac uint16, err error) {
 	resp, err := c.Get(pacUrl)
@@ -352,7 +397,7 @@ func (sunny *sunnyDataProvider) PvData() (pv dataproviders.PvData, err error) {
 	reqCh := make(chan dataproviders.PvData)
 	sunny.latestReqCh <- reqCh
 	pv = <-reqCh
-	log.Tracef("Returning PvData as %s", pv)
+	log.Tracef("Returning PvData as %s", pv.ToJson())
 	return
 }
 
