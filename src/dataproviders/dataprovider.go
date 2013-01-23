@@ -65,6 +65,7 @@ func RunUpdates(updateFast UpdatePvData,
 	errCounter := 0
 	firstRun := true
 
+LOOP:
 	for {
 		// If this is first run, then reqCh will block
 		// So we start with a zero'ed pv
@@ -86,7 +87,7 @@ func RunUpdates(updateFast UpdatePvData,
 			firstRun = false
 		}
 		if errCounter > errClose {
-			break
+			break LOOP
 		}
 		//Wait for rerequest
 		log.Debug("Waiting on tickers...")
@@ -105,21 +106,17 @@ func RunUpdates(updateFast UpdatePvData,
 				updateCh <- pv
 			}
 			if errCounter > errClose {
-				break
+				break LOOP
 			}
 
 		case <-terminateCh:
-			log.Debug("Terminate ticker")
-			fastTick.Stop()
-			terminateTicker.Stop()
-			term()
-			termCh <- 0
-			log.Info("RunUpdates exited")
-			return
+			break LOOP
 		}
 
 	}
+	log.Debug("Terminate ticker")
 	fastTick.Stop()
+	slowTick.Stop()
 	terminateTicker.Stop()
 	term()
 	termCh <- 0
