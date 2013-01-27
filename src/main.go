@@ -6,9 +6,11 @@ import (
 	"web"
 	"plantdata"
 	"dataproviders"
-	"log"
 	"encoding/json"
+	"logger"
 )
+
+var log = logger.NewLogger(logger.INFO, "main: ")
 
 type staticPlants struct {
 	plants map[string]plantdata.PlantData
@@ -41,11 +43,16 @@ func main() {
 	http.HandleFunc("/plants/", func(w http.ResponseWriter, r *http.Request) {
 		web.PlantHandler(w, r, &controller, plants)
 	})
-	http.ListenAndServe(":8090", nil)
+	http.Handle("/scripts/",  http.FileServer(http.Dir(".")))
+	http.Handle("/html/",  http.FileServer(http.Dir(".")))
+	err := http.ListenAndServe(":8090", nil)
+	if err != nil {
+		log.Info(err.Error())
+	}
 }
 
 func (s staticPlants)PlantData(plantkey string) *plantdata.PlantData {
-	log.Printf("Getting plant for plantkey: %s", plantkey)
+	log.Tracef("Getting plant for plantkey: %s", plantkey)
 	plant, ok := s.plants[plantkey]
 	if !ok {
 		return nil
@@ -54,7 +61,7 @@ func (s staticPlants)PlantData(plantkey string) *plantdata.PlantData {
 }
 
 func (s staticPlants)ToJson() []byte {
-	log.Print("Getting all plants as json")
+	log.Tracef("Getting all plants as json")
 	b, _ := json.MarshalIndent(&s.plants, "", "   ")
 	return b;
 }

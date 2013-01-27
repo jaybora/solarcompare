@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet"
 	href="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.css" />
-<script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
+<script src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
 <script
 	src="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>
 <script>
+  $.ajaxSetup({ cache: false });
   $('#overview').live('pageinit', startup);
   function startup() {
   	loadValues()
@@ -21,21 +22,33 @@
   		console.log('Got reply, updating values on page...')
   		$('#jbrpac').html(data.PowerAc)
   		$('#jbretoday').html(data.EnergyToday)
+  		var update = new Date(Date.parse(data.LatestUpdate))
+  		if (!isNaN(update.getHours()))
+  			$('#jbrupd').html(update.getHours() + ":" + update.getMinutes() + ":" + update.getSeconds())
   	} )
   	$.getJSON( "plants/peterlarsen", function(data) {
   		console.log('Got reply, updating values on page...')
   		$('#plpac').html(data.PowerAc)
   		$('#pletoday').html(data.EnergyToday)
+  		var update = new Date(Date.parse(data.LatestUpdate))
+  		if (!isNaN(update.getHours()))
+	  		$('#plupd').html(update.getHours() + ":" + update.getMinutes() + ":" + update.getSeconds())
   	} )
   	$.getJSON( "plants/kaup", function(data) {
   		console.log('Got reply, updating values on page...')
   		$('#kauppac').html(data.PowerAc)
   		$('#kaupetoday').html(data.EnergyToday)
+  		var update = new Date(Date.parse(data.LatestUpdate))
+   		if (!isNaN(update.getHours()))
+ 	 		$('#kaupupd').html(update.getHours() + ":" + update.getMinutes() + ":" + update.getSeconds())
   	} )
   	$.getJSON( "plants/gldv33", function(data) {
   		console.log('Got reply, updating values on page...')
   		$('#gldv33pac').html(data.PowerAc)
   		$('#gldv33etoday').html(data.EnergyToday)
+  		var update = new Date(Date.parse(data.LatestUpdate))
+  		if (!isNaN(update.getHours()))
+	  		$('#gldv33upd').html(update.getHours() + ":" + update.getMinutes() + ":" + update.getSeconds())
   	} )
   }
   </script>
@@ -51,6 +64,9 @@ table.comp th {
 }
 body {
 	font-size: 10pt;
+}
+p.update-text {
+	font-size: 8pt;
 }
 </style>
 
@@ -70,19 +86,19 @@ body {
 				<thead>
 					<tr>
 						<th style="text-align: left"></th>
-						<th>Jesper</th>
-						<th>Peter</th>
-						<th>Glen</th>
-						<th>Rune</th>
+						<th>Jesper<p class="update-text" id="jbrupd"></p></th>
+						<th>Peter<p class="update-text" id="plupd"></p></th>
+						<th>Glen<p class="update-text" id="kaupupd"></p></th>
+						<th>Rune<p class="update-text" id="gldv33upd"></p></th>
 					</tr>
 				</thead>
 				<tbody>
 					<tr>
 						<td><b>Aktuel produktion</b></td>
-						<td style="text-align: right"><span id="jbrpac"></span> watt</td>
-						<td style="text-align: right"><span id="plpac"></span> watt</td>
-						<td style="text-align: right"><span id="kauppac"></span> watt</td>
-						<td style="text-align: right"><span id="gldv33pac"></span> watt</td>
+						<td style="text-align: right"><span id="jbrpac"></span> W</td>
+						<td style="text-align: right"><span id="plpac"></span> W</td>
+						<td style="text-align: right"><span id="kauppac"></span> W</td>
+						<td style="text-align: right"><span id="gldv33pac"></span> W</td>
 					</tr>
 					<tr>
 						<td><b>Produktion i dag</b></td>

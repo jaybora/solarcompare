@@ -11,7 +11,7 @@ type InitiateData struct {
 	PlantNo  string
 }
 
-var log = logger.NewLogger(logger.TRACE, "Dataprovider: generic: ")
+var log = logger.NewLogger(logger.INFO, "Dataprovider: generic: ")
 
 type DataProvider interface {
 	Name() string
@@ -49,7 +49,8 @@ func RunUpdates(updateFast UpdatePvData,
 	reqCh chan chan PvData,
 	term TerminateCallback,
 	termCh chan int,
-	errClose int) {
+	errClose int,
+	plantkey string) {
 	log.Trace("Started a RunUpdates rutine")
 
 	// Fast Ticker
@@ -64,6 +65,24 @@ func RunUpdates(updateFast UpdatePvData,
 
 	errCounter := 0
 	firstRun := true
+	
+	shutdown := func() {
+		log.Infof("About to terminate RunUpdates for plant %s", plantkey)
+		fastTick.Stop()
+		slowTick.Stop()
+		terminateTicker.Stop()
+		term()
+		termCh <- 0
+		log.Infof("RunUpdates exited for plant %s", plantkey)
+		return
+    }
+    
+    defer func() {
+        shutdown()
+        if r := recover(); r != nil {
+            log.Infof("Recovered in dataprovider.RunUpdates, %s", r)
+        }
+    }()
 
 LOOP:
 	for {
@@ -81,7 +100,7 @@ LOOP:
 		}
 		if err != nil {
 			errCounter++
-			log.Infof("There was on error on updatePvData: %s, error counter is now %d", err.Error(), errCounter)
+			log.Infof("There was on error on updatePvData: %s, error counter is now %d for plant %s", err.Error(), errCounter, plantkey)
 		} else {
 			updateCh <- pv
 			firstRun = false
@@ -101,7 +120,7 @@ LOOP:
 			pv, err := updateSlow(pv)
 			if err != nil {
 				errCounter++
-				log.Infof("There was on error on updatePvData: %s, error counter is now %d", err.Error(), errCounter)
+				log.Infof("There was on error on updatePvData: %s, error counter is now %d for plant %s", err.Error(), errCounter, plantkey)
 			} else {
 				updateCh <- pv
 			}
@@ -114,13 +133,8 @@ LOOP:
 		}
 
 	}
-	log.Debug("Terminate ticker")
-	fastTick.Stop()
-	slowTick.Stop()
-	terminateTicker.Stop()
-	term()
-	termCh <- 0
-	log.Info("RunUpdates exited")
+	
+	shutdown()
 }
 
 // This will handle the latestdata we have
@@ -130,12 +144,20 @@ LOOP:
 func LatestPvData(reqCh chan chan PvData,
 	updateCh chan PvData,
 	terminateCh chan int) {
+	latestData := PvData{}
 	// Wait here until first data is received 
-	latestData := <-updateCh
+	select {
+		case latestData = <-updateCh:
+			latestData.LatestUpdate = time.Now()
+		case <-terminateCh:
+			log.Debug("Terminated latestData")
+			return	
+	}
 
 	for {
 		select {
 		case latestData = <-updateCh:
+			latestData.LatestUpdate = time.Now()
 		case repCh := <-reqCh:
 			repCh <- latestData
 		case <-terminateCh:

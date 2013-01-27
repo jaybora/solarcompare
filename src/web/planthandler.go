@@ -60,7 +60,7 @@ func listPlants(w http.ResponseWriter, pg PlantDataGetter) {
 func plantKey(url string) string {
 	parts := strings.Split(url, "/")
 	if len(parts) > 2 {
-		return parts[2]
+		return strings.Split(parts[2], "?")[0]
 	}
 	return ""
 	

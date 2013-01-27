@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"net"
 )
 
 type sunnyDataProvider struct {
@@ -46,7 +47,7 @@ func (jar *Jar) Cookies(u *url.URL) []*http.Cookie {
 	return jar.cookies
 }
 
-var log = logger.NewLogger(logger.TRACE, "Dataprovider: SunnyPortal:")
+var log = logger.NewLogger(logger.INFO, "Dataprovider: SunnyPortal:")
 
 const MAX_ERRORS = 10
 const INACTIVE_TIMOUT = 300 //secs
@@ -72,9 +73,18 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 
 	log.Debug("New dataprovider")
 	jar := new(Jar)
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
-		Jar: jar}
+	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		Dial: func(netw, addr string) (net.Conn, error) {
+			// Specify timeout/deadline
+			deadline := time.Now().Add(8 * time.Second)
+			c, err := net.DialTimeout(netw, addr, time.Second)
+			if err != nil {
+				return nil, err
+			}
+			c.SetDeadline(deadline)
+			return c, nil
+		}}
+	client := &http.Client{Transport: transport, Jar: jar}
 
 	sunny = sunnyDataProvider{initiateData,
 		make(chan chan dataproviders.PvData),
@@ -110,7 +120,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 	if err != nil {
 		return
 	}
-	
+	log.Infof("Plant %s is now online", sunny.plantname)
 
 	go dataproviders.RunUpdates(
 		func(pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
@@ -137,7 +147,8 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		sunny.latestReqCh,
 		term,
 		sunny.terminateCh,
-		MAX_ERRORS)
+		MAX_ERRORS,
+		sunny.plantname)
 
 	go dataproviders.LatestPvData(
 		sunny.latestReqCh,
@@ -181,7 +192,9 @@ func (c *sunnyDataProvider) login(username string, password string) error {
 		log.Fail(err.Error())
 		return err
 	}
-
+	defer resp.Body.Close()
+	ioutil.ReadAll(resp.Body)
+	
 	c.printCookies()
 
 	if resp.StatusCode == 302 {
@@ -211,6 +224,8 @@ func (c *sunnyDataProvider) setPlantNo(plantno string) error {
 		log.Fail(err.Error())
 		return err
 	}
+	defer resp.Body.Close()
+	ioutil.ReadAll(resp.Body)
 
 	if resp.StatusCode == 302 {
 		log.Debug("Plant selection success!")

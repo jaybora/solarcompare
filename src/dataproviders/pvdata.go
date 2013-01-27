@@ -15,7 +15,6 @@ type PvData struct {
 	AmpereAc     float32}
 
 func (data *PvData) ToJson() (b []byte) {
-	data.LatestUpdate = time.Now()
 	b, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Failf("ERROR on mashalling pvdata to JSON: %s", err.Error())
