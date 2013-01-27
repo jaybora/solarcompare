@@ -10,10 +10,13 @@ package controller
 import (
 	"dataproviders"
 	"dataproviders/dispatcher"
-	"log"
 	"plantdata"
 	"sync"
+	"logger"
+	"time"
 )
+
+var log = logger.NewLogger(logger.TRACE, "Controller: ")
 
 // Locker for sync'ing the live map
 var lock = sync.RWMutex{}
@@ -26,7 +29,9 @@ type Controller struct {
 // Create a new controller
 // Only one for entire app
 func NewController() Controller {
-	return Controller{map[string]dataproviders.DataProvider{}}
+	c := Controller{map[string]dataproviders.DataProvider{}}
+	go printStatus(&c)
+	return c
 }
 
 // Get the channel for the live provider of the given plantkey
@@ -40,21 +45,52 @@ func (c *Controller) Provider(plantdata *plantdata.PlantData) (provider dataprov
 		return
 	} else {
 		// No live, startup a new provider
-		err = c.startNewProvider(plantdata)
-		if err != nil {
+		// Lock again to prevent that multiple providers would be started
+		lock.Lock();
+		// Look again if someone else has started the provider
+		provider, ok = c.live[plantdata.PlantKey]
+		if ok {
+			log.Infof("Someone else started the provider for plant %s", plantdata.PlantKey)
+			lock.Unlock()
 			return
 		}
-		lock.RLock()
+		err = c.startNewProvider(plantdata)
+		if err != nil {
+			log.Infof("Could not start provider for plant %s", plantdata.PlantKey)
+			lock.Unlock()
+			return
+		}
+		//lock.RLock()
 		provider, _ = c.live[plantdata.PlantKey]
-		lock.RUnlock()
+		lock.Unlock()
 		return
 	}
 	return
 }
 
+func printStatus(c *Controller) {
+	tick := time.NewTicker(1 * time.Minute)
+	tickCh := tick.C
+	
+	for {
+		<-tickCh
+		log.Info("List of online plants:")
+		log.Info("-----------------------------------------------")
+		lock.RLock();
+		for k, v := range c.live {
+			pvdata, _ := v.PvData()
+			log.Infof(" - %s, latest update at %s", k, pvdata.LatestUpdate.Format(time.RFC822))
+		}
+		lock.RUnlock();
+		log.Info("-----------------------------------------------")
+	}
+
+
+}
+
 func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
 	json, _ := plantdata.ToJson()
-	log.Printf("Starting new dataprovider for plant %s", json)
+	log.Infof("Starting new dataprovider for plant %s", json)
 
 	p, err := dispatcher.Provider(plantdata.DataProvider,
 		plantdata.InitiateData,
@@ -64,15 +100,15 @@ func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
 	if err != nil {
 		return err
 	}
-	lock.Lock()
+	//lock.Lock()
 	c.live[plantdata.PlantKey] = p
-	lock.Unlock()
+	//lock.Unlock()
 	return nil
 
 }
 
 func (c *Controller) providerTerminated(plantKey string) {
-	log.Printf("Controller, plantkey %s gone offline", plantKey)
+	log.Infof("Controller, plantkey %s gone offline", plantKey)
 	lock.Lock()
 	delete(c.live, plantKey)
 	lock.Unlock()
