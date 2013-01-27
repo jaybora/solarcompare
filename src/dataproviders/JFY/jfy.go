@@ -19,7 +19,7 @@ type jfyDataProvider struct {
 	client         *http.Client
 }
 
-const GetUrl = "http://cts.jbr.dk:81/json"
+const GetUrl = "http://localhost:8081/json"
 
 var log = logger.NewLogger(logger.INFO, "Dataprovider: JFY:")
 
@@ -58,7 +58,8 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		jfy.latestReqCh,
 		term,
 		jfy.terminateCh,
-		MAX_ERRORS)
+		MAX_ERRORS,
+		"jbr")
 	go dataproviders.LatestPvData(jfy.latestReqCh, jfy.latestUpdateCh, jfy.terminateCh)
 
 	return jfy
