@@ -75,14 +75,14 @@ func printStatus(c *Controller) {
 	for {
 		<-tickCh
 		log.Info("List of online plants:")
-		log.Info("-----------------------------------------------")
+		log.Info("----------------------------------------------------")
 		lock.RLock();
 		for k, v := range c.live {
 			pvdata, _ := v.PvData()
 			log.Infof(" - %s, latest update at %s", k, pvdata.LatestUpdate.Format(time.RFC822))
 		}
 		lock.RUnlock();
-		log.Info("-----------------------------------------------")
+		log.Info("----------------------------------------------------")
 	}
 
 
@@ -100,9 +100,7 @@ func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
 	if err != nil {
 		return err
 	}
-	//lock.Lock()
 	c.live[plantdata.PlantKey] = p
-	//lock.Unlock()
 	return nil
 
 }
