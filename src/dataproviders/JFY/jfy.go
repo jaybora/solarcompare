@@ -19,7 +19,7 @@ type jfyDataProvider struct {
 	client         *http.Client
 }
 
-const GetUrl = "http://localhost:8081/json"
+const GetUrl = "http://10.0.1.201:8081/json"
 
 var log = logger.NewLogger(logger.INFO, "Dataprovider: JFY:")
 
