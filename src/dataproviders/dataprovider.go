@@ -65,7 +65,7 @@ func RunUpdates(updateFast UpdatePvData,
 
 	errCounter := 0
 	firstRun := true
-	
+
 	shutdown := func() {
 		log.Infof("About to terminate RunUpdates for plant %s", plantkey)
 		fastTick.Stop()
@@ -75,14 +75,14 @@ func RunUpdates(updateFast UpdatePvData,
 		termCh <- 0
 		log.Infof("RunUpdates exited for plant %s", plantkey)
 		return
-    }
-    
-    defer func() {
-        shutdown()
-        if r := recover(); r != nil {
-            log.Infof("Recovered in dataprovider.RunUpdates, %s", r)
-        }
-    }()
+	}
+
+	defer func() {
+		shutdown()
+		if r := recover(); r != nil {
+			log.Infof("Recovered in dataprovider.RunUpdates, %s", r)
+		}
+	}()
 
 LOOP:
 	for {
@@ -133,7 +133,7 @@ LOOP:
 		}
 
 	}
-	
+
 	shutdown()
 }
 
@@ -145,19 +145,22 @@ func LatestPvData(reqCh chan chan PvData,
 	updateCh chan PvData,
 	terminateCh chan int) {
 	latestData := PvData{}
-	// Wait here until first data is received 
-	select {
-		case latestData = <-updateCh:
-			latestData.LatestUpdate = time.Now()
-		case <-terminateCh:
-			log.Debug("Terminated latestData")
-			return	
-	}
 
+	// Wait here until first data is received 
+/*
+	select {
+	case latestData = <-updateCh:
+		latestData.LatestUpdate = time.Now()
+	case <-terminateCh:
+		log.Debug("Terminated latestData")
+		return
+	}
+*/
 	for {
 		select {
 		case latestData = <-updateCh:
-			latestData.LatestUpdate = time.Now()
+			t := time.Now()
+			latestData.LatestUpdate = &t 
 		case repCh := <-reqCh:
 			repCh <- latestData
 		case <-terminateCh:

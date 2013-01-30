@@ -7,7 +7,7 @@ import (
 
 
 type PvData struct {
-	LatestUpdate time.Time
+	LatestUpdate *time.Time
 	PowerAc      uint16
 	EnergyTotal  float32
 	EnergyToday  uint16
