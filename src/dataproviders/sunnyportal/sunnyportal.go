@@ -76,8 +76,8 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		Dial: func(netw, addr string) (net.Conn, error) {
 			// Specify timeout/deadline
-			deadline := time.Now().Add(8 * time.Second)
-			c, err := net.DialTimeout(netw, addr, time.Second)
+			deadline := time.Now().Add(30 * time.Second)
+			c, err := net.DialTimeout(netw, addr, 5 * time.Second)
 			if err != nil {
 				return nil, err
 			}
@@ -94,43 +94,55 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		client,
 		"",
 		""}
+	
+	go initiate(&sunny, initiateData, term)
+	return
+		
+}
+
+func initiate(sunny *sunnyDataProvider, initiateData dataproviders.InitiateData, term dataproviders.TerminateCallback) {
 
 	// First request will start a session on the server
 	// And give us cookies and viewstate that we need when logging in
-	err = sunny.initiate()
+	err := sunny.preLogin()
 	if err != nil {
+		term()
 		return
 	}
 	err = sunny.login(initiateData.UserName, initiateData.Password)
 	if err != nil {
+		term()
 		return
 	}
 
 	_, err = sunny.plantName()
 	if err != nil {
+		term()
 		return
 	}
 
 	err = sunny.setPlantNo(initiateData.PlantNo)
 	if err != nil {
+		term()
 		return
 	}
 	
 	sunny.plantname, err = sunny.plantName()
 	if err != nil {
+		term()
 		return
 	}
 	log.Infof("Plant %s is now online", sunny.plantname)
 
 	go dataproviders.RunUpdates(
 		func(pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
-			pac, err := updatePacData(client)
+			pac, err := updatePacData(sunny.client)
 			pvin.PowerAc = pac
 			pv = pvin
 			return
 		},
 		func(pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
-			pvdaily, err := updateDailyProduction(client)
+			pvdaily, err := updateDailyProduction(sunny.client)
 			today, ok := pvdaily[nowDate()]
 			if ok {
 				pvin.EnergyToday = today
@@ -158,13 +170,19 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 	return
 }
 
-func (c *sunnyDataProvider) initiate() error {
+func (c *sunnyDataProvider) preLogin() error {
 	resp, err := c.client.Get(startUrl)
 	if err != nil {
 		log.Fail(err.Error())
 		return err
 	}
 	defer resp.Body.Close()
+	defer func() {
+        if r := recover(); r != nil {
+            fmt.Println("Recovered in initiate", r)
+        }
+    }()
+    
 	log.Tracef("Got a %s reply on initiate cookies and viewstate", resp.Status)
 
 	reg, err := regexp.Compile("<input type=\"hidden\" name=\"__VIEWSTATE\" id=\"__VIEWSTATE\" value=\"[^\"]*")
@@ -324,6 +342,7 @@ func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDai
 	}
 
 	found := reg.Find(b)
+	
 	viewstate := string(found[196:])
 	log.Debugf("Viewstate was found as %s", viewstate)
 
