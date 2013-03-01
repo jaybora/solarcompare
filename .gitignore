@@ -1,2 +1,6 @@
 pkg/
 bin/
+
+solarcompare
+
+src/web/.DS_Store
