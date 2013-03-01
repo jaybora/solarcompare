@@ -49,8 +49,8 @@ func (jar *Jar) Cookies(u *url.URL) []*http.Cookie {
 
 var log = logger.NewLogger(logger.INFO, "Dataprovider: SunnyPortal:")
 
-const MAX_ERRORS = 10
-const INACTIVE_TIMOUT = 300 //secs
+const MAX_ERRORS = 5
+//const INACTIVE_TIMOUT = 300 //secs
 
 const startUrl = "http://www.sunnyportal.com/Templates/Start.aspx"
 const loginUrl = "http://www.sunnyportal.com/Templates/Start.aspx"
@@ -94,54 +94,66 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		client,
 		"",
 		""}
+		
+	go dataproviders.LatestPvData(
+		sunny.latestReqCh,
+		sunny.latestUpdateCh,
+		sunny.terminateCh)
 	
-	go initiate(&sunny, initiateData, term)
+	go initiate(&sunny, initiateData, term, sunny.terminateCh)
+	
 	return
 		
 }
 
-func initiate(sunny *sunnyDataProvider, initiateData dataproviders.InitiateData, term dataproviders.TerminateCallback) {
+func initiate(sunny *sunnyDataProvider, initiateData dataproviders.InitiateData, term dataproviders.TerminateCallback, termCh chan int) {
 
 	// First request will start a session on the server
 	// And give us cookies and viewstate that we need when logging in
 	err := sunny.preLogin()
 	if err != nil {
 		term()
+		termCh <- 0
 		return
 	}
 	err = sunny.login(initiateData.UserName, initiateData.Password)
 	if err != nil {
 		term()
+		termCh <- 0
 		return
 	}
 
 	_, err = sunny.plantName()
 	if err != nil {
 		term()
+		termCh <- 0
 		return
 	}
 
 	err = sunny.setPlantNo(initiateData.PlantNo)
 	if err != nil {
 		term()
+		termCh <- 0
 		return
 	}
 	
 	sunny.plantname, err = sunny.plantName()
 	if err != nil {
 		term()
+		termCh <- 0
 		return
 	}
 	log.Infof("Plant %s is now online", sunny.plantname)
 
 	go dataproviders.RunUpdates(
-		func(pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
+		&initiateData,
+		func(id *dataproviders.InitiateData, pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
 			pac, err := updatePacData(sunny.client)
 			pvin.PowerAc = pac
 			pv = pvin
 			return
 		},
-		func(pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
+		func(id *dataproviders.InitiateData, pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
 			pvdaily, err := updateDailyProduction(sunny.client)
 			today, ok := pvdaily[nowDate()]
 			if ok {
@@ -162,10 +174,7 @@ func initiate(sunny *sunnyDataProvider, initiateData dataproviders.InitiateData,
 		MAX_ERRORS,
 		sunny.plantname)
 
-	go dataproviders.LatestPvData(
-		sunny.latestReqCh,
-		sunny.latestUpdateCh,
-		sunny.terminateCh)
+
 
 	return
 }

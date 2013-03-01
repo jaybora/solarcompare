@@ -8,6 +8,7 @@ import (
 	"dataproviders"
 	"encoding/json"
 	"logger"
+	"time"
 )
 
 var log = logger.NewLogger(logger.INFO, "main: ")
@@ -33,6 +34,10 @@ var plantmap = map[string]plantdata.PlantData {
 	                           Name: "Guldnældevænget 33",
 	                           DataProvider: dataproviders.SunnyPortal,
 	                           InitiateData: dataproviders.InitiateData{"jesper@jbr.dk", "cidaxura", "1"}},
+	"lysningen": plantdata.PlantData{PlantKey: "lysningen", 
+	                           Name: "Janniks anlæg",
+	                           DataProvider: dataproviders.Suntrol,
+	                           InitiateData: dataproviders.InitiateData{PlantNo: "7982"}},
 }
 
 func main() {
@@ -45,7 +50,11 @@ func main() {
 	})
 	http.Handle("/scripts/",  http.FileServer(http.Dir(".")))
 	http.Handle("/html/",  http.FileServer(http.Dir(".")))
-	err := http.ListenAndServe(":8090", nil)
+	
+	srv := http.Server{Addr: ":8090", ReadTimeout: 10*time.Second}
+
+	err := srv.ListenAndServe()
+	
 	if err != nil {
 		log.Info(err.Error())
 	}

@@ -1,18 +1,23 @@
 package dataproviders
 
 import (
-	"time"
 	"encoding/json"
+	"time"
 )
 
-
 type PvData struct {
-	LatestUpdate *time.Time
-	PowerAc      uint16
-	EnergyTotal  float32
-	EnergyToday  uint16
-	VoltDc       float32
-	AmpereAc     float32}
+	LatestUpdate         *time.Time
+	PowerAc              uint16
+	PowerAcPeakAll       uint16
+	PowerAcPeakAllTime   time.Time
+	PowerAcPeakToday     uint16
+	PowerAcPeakTodayTime time.Time
+	EnergyTotal          float32
+	EnergyToday          uint16
+	VoltDc               float32
+	AmpereAc             float32
+	State                string
+}
 
 func (data *PvData) ToJson() (b []byte) {
 	b, err := json.MarshalIndent(data, "", "  ")
@@ -22,8 +27,7 @@ func (data *PvData) ToJson() (b []byte) {
 	return
 }
 
-
 const KeyDateFormat = "20060102"
+
 // Key is YYYYMMDD
 type PvDataDaily map[string]uint16
-

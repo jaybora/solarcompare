@@ -3,7 +3,17 @@ package dataproviders
 import (
 	"logger"
 	"time"
+	"io/ioutil"
+	"encoding/json"
+
 )
+
+type PlantStats struct {
+	PowerAcPeakAll       uint16
+	PowerAcPeakAllTime   time.Time
+	PowerAcPeakToday     uint16
+	PowerAcPeakTodayTime time.Time
+}
 
 type InitiateData struct {
 	UserName string
@@ -11,7 +21,7 @@ type InitiateData struct {
 	PlantNo  string
 }
 
-var log = logger.NewLogger(logger.INFO, "Dataprovider: generic: ")
+var log = logger.NewLogger(logger.DEBUG, "Dataprovider: generic: ")
 
 type DataProvider interface {
 	Name() string
@@ -20,14 +30,47 @@ type DataProvider interface {
 
 type TerminateCallback func()
 
-type UpdatePvData func(pv PvData) (pv PvData, err error)
+type UpdatePvData func(i *InitiateData, pv PvData) (pv PvData, err error)
 
 // List of all known dataproviders
 // This would be nice if we could autodetect them somehow
 const (
 	FJY         = iota
 	SunnyPortal = iota
+	Suntrol     = iota
 )
+
+const Statfilename = "_stats.json"
+
+// Load up stats from filesystem
+func loadStats(plantkey string) PlantStats {
+	stats := PlantStats{}
+	bytes, err := ioutil.ReadFile(plantkey + Statfilename)
+	if err != nil {
+		log.Infof("Error in reading statfile for plant %s: %s", plantkey, err.Error())
+		return stats
+	}
+	err = json.Unmarshal(bytes, &stats)
+	return stats;
+}
+
+func saveStats(plantkey string, pv *PvData) {
+	stats := PlantStats{}
+	stats.PowerAcPeakAll = pv.PowerAcPeakAll
+	stats.PowerAcPeakAllTime = pv.PowerAcPeakAllTime
+	stats.PowerAcPeakToday = pv.PowerAcPeakToday
+	stats.PowerAcPeakTodayTime = pv.PowerAcPeakTodayTime
+	bytes, err := json.Marshal(stats)
+	if err != nil {
+		log.Failf("Could not marshal plant stats for plant %s: %s", plantkey, err.Error())
+		return
+	}
+	err = ioutil.WriteFile(plantkey + Statfilename, bytes, 0777)
+	if err != nil {
+		log.Failf("Could not write plant stats for plant %s: %s", plantkey, err.Error())
+		return
+	}
+} 
 
 // RunUpdates on the provider. 
 // updateFast, a function that gets called when a fast update is scheduled
@@ -40,7 +83,8 @@ const (
 // term, a function that gets called when RunUpdates terminates
 // termCh, a channel to signal when RunUpdates should terminate
 // errClose, maximum number of errors received before giving up, and terminates
-func RunUpdates(updateFast UpdatePvData,
+func RunUpdates(initiateData *InitiateData,
+    updateFast UpdatePvData,
 	updateSlow UpdatePvData,
 	fastTime time.Duration,
 	slowTime time.Duration,
@@ -52,6 +96,9 @@ func RunUpdates(updateFast UpdatePvData,
 	errClose int,
 	plantkey string) {
 	log.Trace("Started a RunUpdates rutine")
+	stats := loadStats(plantkey)
+	
+	
 
 	// Fast Ticker
 	fastTick := time.NewTicker(fastTime)
@@ -71,6 +118,10 @@ func RunUpdates(updateFast UpdatePvData,
 		fastTick.Stop()
 		slowTick.Stop()
 		terminateTicker.Stop()
+		pvCh := make(chan PvData)
+		reqCh <- pvCh
+		pv := <-pvCh
+		saveStats(plantkey, &pv) 
 		term()
 		termCh <- 0
 		log.Infof("RunUpdates exited for plant %s", plantkey)
@@ -89,14 +140,18 @@ LOOP:
 		// If this is first run, then reqCh will block
 		// So we start with a zero'ed pv
 		pv := PvData{}
+		pv.PowerAcPeakAll = stats.PowerAcPeakAll
+		pv.PowerAcPeakAllTime = stats.PowerAcPeakAllTime
+		pv.PowerAcPeakToday = stats.PowerAcPeakToday
+		pv.PowerAcPeakTodayTime = stats.PowerAcPeakTodayTime
 		if !firstRun {
 			pvCh := make(chan PvData)
 			reqCh <- pvCh
 			pv = <-pvCh
 		}
-		pv, err := updateFast(pv)
+		pv, err := updateFast(initiateData, pv)
 		if firstRun {
-			pv, err = updateSlow(pv)
+			pv, err = updateSlow(initiateData, pv)
 		}
 		if err != nil {
 			errCounter++
@@ -117,13 +172,15 @@ LOOP:
 			pvCh := make(chan PvData)
 			reqCh <- pvCh
 			pv := <-pvCh
-			pv, err := updateSlow(pv)
+			pv, err := updateSlow(initiateData, pv)
 			if err != nil {
 				errCounter++
 				log.Infof("There was on error on updatePvData: %s, error counter is now %d for plant %s", err.Error(), errCounter, plantkey)
 			} else {
 				updateCh <- pv
 			}
+			
+			saveStats(plantkey, &pv)
 			if errCounter > errClose {
 				break LOOP
 			}
@@ -135,6 +192,11 @@ LOOP:
 	}
 
 	shutdown()
+}
+
+func midnight() time.Time {
+	y,m,d := time.Now().Date();
+	return time.Date(y,m,d,0,0,0,0,time.Local)
 }
 
 // This will handle the latestdata we have
@@ -159,6 +221,22 @@ func LatestPvData(reqCh chan chan PvData,
 	for {
 		select {
 		case latestData = <-updateCh:
+			if latestData.PowerAcPeakAll < latestData.PowerAc {
+				latestData.PowerAcPeakAll = latestData.PowerAc
+				latestData.PowerAcPeakAllTime = time.Now();
+			}
+			
+			// Reset peak today if lasttime is less than now
+			if latestData.PowerAcPeakTodayTime.Before(midnight()) {
+				log.Debugf("Resetting PowerAcPeakToday because we passed midnight, %s is before %s",latestData.PowerAcPeakTodayTime, midnight())
+				latestData.PowerAcPeakTodayTime = time.Now()
+				latestData.PowerAcPeakToday = latestData.PowerAc
+			}
+			if latestData.PowerAcPeakToday < latestData.PowerAc {
+				log.Debugf("Updating PowerAcPeakToday beause the latest (%i) was higher", latestData.PowerAc)
+				latestData.PowerAcPeakToday = latestData.PowerAc
+				latestData.PowerAcPeakTodayTime = time.Now();
+			}			
 			t := time.Now()
 			latestData.LatestUpdate = &t 
 		case repCh := <-reqCh:

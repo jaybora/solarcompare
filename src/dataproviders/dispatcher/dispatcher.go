@@ -4,6 +4,7 @@ import (
 	"dataproviders"
 	"dataproviders/JFY"
 	"dataproviders/sunnyportal"
+	"dataproviders/suntrol"
 	"fmt"
 )
 
@@ -17,7 +18,6 @@ func Provider(implType int,
 		provider = &jfy
 		return
 	case dataproviders.SunnyPortal:
-		
 		sunny, err2 := sunnyportal.NewDataProvider(init, term)
 		if err2 != nil {
 			err = err2
@@ -25,7 +25,11 @@ func Provider(implType int,
 		}
 		provider = &sunny
 		return
-	}
+	case dataproviders.Suntrol:
+		dp := suntrol.NewDataProvider(init, term)
+		provider = &dp
+		return
 	err = fmt.Errorf("No provider found for %d", implType)
+	}
 	return
 }

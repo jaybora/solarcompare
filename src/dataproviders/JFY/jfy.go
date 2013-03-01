@@ -30,8 +30,8 @@ func (jfy *jfyDataProvider) Name() string {
 	return "JFY"
 }
 
-func NewDataProvider(initiateData dataproviders.InitiateData, 
-                     term dataproviders.TerminateCallback) jfyDataProvider {
+func NewDataProvider(initiateData dataproviders.InitiateData,
+	term dataproviders.TerminateCallback) jfyDataProvider {
 	log.Debug("New JFY dataprovider")
 	client := &http.Client{}
 
@@ -42,18 +42,26 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		nil,
 		client}
 	go dataproviders.RunUpdates(
-		func(pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
-			pv, err = updatePvData(client)
+		&initiateData,
+		func(id *dataproviders.InitiateData, pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
+		    pv = pvint
+			newpv, err := updatePvData(client)
+			pv.PowerAc = newpv.PowerAc
+			pv.AmpereAc = newpv.AmpereAc
+			pv.EnergyToday = newpv.EnergyToday
+			pv.EnergyTotal = newpv.EnergyTotal
+			pv.VoltDc = newpv.VoltDc
+
 			return
-		}, 
-		func(pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
+		},
+		func(id *dataproviders.InitiateData, pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
 			// To prevent zero when provider is starting up
 			pv = pvint
 			return
-		}, 
-		time.Second * 5,
-		time.Minute * 5,
-		time.Minute * 30,
+		},
+		time.Second*5,
+		time.Minute*5,
+		time.Minute*30,
 		jfy.latestUpdateCh,
 		jfy.latestReqCh,
 		term,
@@ -82,9 +90,7 @@ func updatePvData(client *http.Client) (pv dataproviders.PvData, err error) {
 	b, _ := ioutil.ReadAll(resp.Body)
 	log.Tracef("Received body from server: %s", b)
 	err = json.Unmarshal(b, &pv)
-
 	log.Tracef("pv is now %s", pv)
-
 	return
 }
 
