@@ -79,7 +79,11 @@ func printStatus(c *Controller) {
 		lock.RLock();
 		for k, v := range c.live {
 			pvdata, _ := v.PvData()
-			log.Infof(" - %s, latest update at %s", k, pvdata.LatestUpdate.Format(time.RFC822))
+			if pvdata.LatestUpdate == nil {
+				log.Infof(" - %s, no update yet", k)
+			} else {
+				log.Infof(" - %s, latest update at %s", k, pvdata.LatestUpdate.Format(time.RFC822))
+			}
 		}
 		lock.RUnlock();
 		log.Info("----------------------------------------------------")
