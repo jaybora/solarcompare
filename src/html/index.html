@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Solarcompare</title>
+<meta name="viewport" content="initial-scale=1">
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.1/themes/base/jquery-ui.css" />
+<script type='text/javascript' src="scripts/formatdate.js"></script>
+<script src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
+<script type='text/javascript' src='https://www.google.com/jsapi'></script>
+<script src="http://code.jquery.com/ui/1.10.1/jquery-ui.js"></script>
+<script type="text/javascript"
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDrkLN7iOtMkupENK_5YFbfaCGqVmM1KMw&sensor=false">
+</script>
+
+<script type="text/javascript">
+  google.load('visualization', '1', {packages:['gauge']});
+ 
+  function initializeMap(elementid, latlng) {	
+	var mapOptions = {
+	  center: latlng,
+	  zoom:7,
+	  disableDefaultUI: true,
+	  mapTypeId: google.maps.MapTypeId.ROADMAP
+	};
+	var map = new google.maps.Map(document.getElementById(elementid),
+		mapOptions);
+	var marker = new google.maps.Marker({
+		  position: latlng,
+		  map: map
+	  });
+  }
+  var gauges = {};
+  var gaugeData = {};
+  var gaugeOptions = {};
+  
+  function drawChart(elementid, val) {
+    if (gaugeData[elementid]==undefined) {
+	  console.log(elementid + ' was undefined');
+	  gaugeData[elementid] = google.visualization.arrayToDataTable([
+	    ['Watt'],
+	    [val]
+	  ]);
+	}
+    if (gaugeOptions[elementid]==undefined) {
+	  gaugeOptions[elementid] = {
+	    width: 130, height: 130,
+	    minorTicks: 10,
+	    majorTicks: ['0', '1', '2', '3', '4', '5', '6'],
+	    max: 6000,
+	    animation: {duration: 600, easing: 'inAndOut'}
+	  };
+    }
+	gaugeData[elementid].setValue(0, 0, val);
+	
+	if (gauges[elementid]==undefined) {
+	   gauges[elementid] = new google.visualization.Gauge(document.getElementById(elementid));
+	}
+	gauges[elementid].draw(gaugeData[elementid], gaugeOptions[elementid]);
+  }
+  
+  $.ajaxSetup({ cache: false });
+  $(document).ready(startup);
+  
+  // Parse GET parameters
+  $.extend({
+	  getUrlVars: function() {
+			var vars = [], hash;
+			var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+			for (var i = 0; i < hashes.length; i++) {
+					hash = hashes[i].split('=');
+					vars.push(hash[0]);
+					vars[hash[0]] = hash[1];
+				}
+				return vars;
+	  },
+		getUrlVar: function(name){
+			return $.getUrlVars()[name];
+		}
+	});
+	
+	function loadUp(plants) {
+		for (var i=0;i<plants.length;i++) {
+			$('#comparisontable tr:first').append('<th>' + plants[i] + '</th>')
+		}
+	
+	}
+  
+    
+  function startup() {
+			//var plants = $.getUrlVar('plants').split(';')
+			//console.log('Plants to compare: ' + plants);
+//			loadUp(plants);
+
+  	loadValues();
+  	window.setInterval(loadValues, 5000);
+	
+		initializeMap("jbrmap", new google.maps.LatLng(55.261037,11.777261));
+		initializeMap("plmap", new google.maps.LatLng(54.80054, 11.88664));
+		initializeMap("gldv33map", new google.maps.LatLng(54.80054, 11.88664));
+		initializeMap("kaupmap", new google.maps.LatLng(54.80054, 11.88664));
+		initializeMap("jannikmap", new google.maps.LatLng(54.82534,11.259825));
+		initializeMap("janbangmap", new google.maps.LatLng(54.765939,11.853046));
+
+  }
+  
+  function updateGrid(plantname, data) {
+	$('#' + plantname + 'peakall').html(data.PowerAcPeakAll);
+	$('#' + plantname + 'peakall').prop('title', new Date(Date.parse(data.PowerAcPeakAllTime)).format('dd.mm.yyyy HH.MM.ss'));
+	
+	$('#' + plantname + 'peakday').html(data.PowerAcPeakToday);
+	$('#' + plantname + 'peakday').prop('title', new Date(Date.parse(data.PowerAcPeakTodayTime)).format('dd.mm.yyyy HH.MM.ss'));
+	drawChart(plantname + 'gau', data.PowerAc);
+	
+	$('#' + plantname + 'etodaybar').progressbar({max: 40000, value: data.EnergyToday})
+	$('#' + plantname + 'etoday').text(data.EnergyToday + ' Wh')
+	
+	var update = new Date(Date.parse(data.LatestUpdate))
+	if (!isNaN(update.getHours()))
+		$('#' + plantname + 'upd').html(update.format('HH.MM.ss'))
+
+
+  }
+   
+  function loadValues() {
+  	console.log('Rerequesting values...')
+		
+		_gaq.push(['_trackEvent', 'Plants', 'Load Values', 'All plants']);
+  	$.getJSON( "../plant/jbr", function(data) {
+  		console.log('Got reply, updating values on page...')
+  		updateGrid('jbr', data);
+  	} )
+  	$.getJSON( "../plant/peterlarsen", function(data) {
+  		console.log('Got reply, updating values on page...')
+  		updateGrid('pl', data);
+  	} )
+  	$.getJSON( "../plant/kaup", function(data) {
+  		console.log('Got reply, updating values on page...')
+  		updateGrid('kaup', data);
+  	} )
+  	$.getJSON( "../plant/gldv33", function(data) {
+  		console.log('Got reply, updating values on page...')
+  		updateGrid('gldv33', data);
+  	} )
+  	$.getJSON( "../plant/janbang", function(data) {
+  		console.log('Got reply, updating values on page...')
+  		updateGrid('janbang', data);
+  	} )
+  	$.getJSON( "../plant/lysningen", function(data) {
+  		console.log('Got reply, updating values on page...')
+  		updateGrid('jannik', data);
+  		/*
+  		$('#janniktoday').html(data.EnergyToday)
+  		var update = new Date(Date.parse(data.LatestUpdate))
+  		if (!isNaN(update.getHours()))
+	  		$('#jannikupd').html(update.getHours() + ":" + update.getMinutes() + ":" + update.getSeconds())
+	  		*/
+  	} )
+/*
+  	if (prevMaxPac != maxPac) {
+  		renderGauges();
+  		prevMaxPac = maxPac;
+  	}
+  	*/
+  }
+
+  </script>
+<style type="text/css">
+table.comp td.comp {
+	padding: 10px;
+	border-bottom: 1px solid gray;
+}
+
+table.comp th {
+	padding: 5px;
+	border-bottom: 2px solid black;
+}
+
+body {
+	font-size: 11pt;
+	font-family: helvetica;
+}
+
+p.update-text {
+	font-size: 8pt;
+}
+
+h1 {
+	font-size: 20pt;
+	color: white;
+	background-color: #999999;
+	font-weight: bold;
+	padding: 10px;
+}
+
+.today-label {
+    float: right;
+    margin-top: 5px;
+    font-size: 12pt;
+    text-shadow: 1px 1px 0 #fff;
+	margin-right: 4px;
+}
+
+</style>
+
+<!-- Google analytics -->
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-39283378-1']);
+  _gaq.push(['_setDomainName', 'jbr.dk']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+</head>
+<body>
+
+
+	<h1>Solcelle sammenlign</h1>
+	<!--
+	<table class="comp" id="comparisontable">
+		<thead>
+			<tr id='comparisontableheader'>
+				<th style="text-align: left"></th>
+			</tr>
+		</thead>
+	</table> -->
+	<table class="comp" id="my-table">
+		<thead>
+			<tr>
+				<th style="text-align: left"></th>
+				<th>Jesper
+					<p class="update-text" id="jbrupd"></p>
+				</th>
+				<th>Peter
+					<p class="update-text" id="plupd"></p>
+				</th>
+				<th>Rune
+					<p class="update-text" id="gldv33upd"></p>
+				</th>
+				<th>Glen
+					<p class="update-text" id="kaupupd"></p>
+				</th>
+				<th>Jan
+					<p class="update-text" id="janbangupd"></p>
+				</th>
+				<th>Jannik
+					<p class="update-text" id="jannikupd"></p>
+				</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td class="comp" ><b>Aktuel produktion</b></td>
+				<td class="comp" style="text-align: center">					
+					<div style="text-align: center;" id="jbrgau"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div id="plgau"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div id="gldv33gau"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div id="kaupgau"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div id="janbanggau"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div id="jannikgau"></div>
+				</td>
+			</tr>
+			<tr>
+				<td class="comp" ><b>Produktion i dag</b></td>
+				<td class="comp" style="text-align: center">
+					<div id="jbretodaybar"><div class="today-label" id="jbretoday"></div></div>
+				</td>
+				<td class="comp" style="text-align: center">
+				   <div id="pletodaybar"><div class="today-label" id="pletoday"></div></div>
+				</td>
+				<td class="comp" style="text-align: center">
+				  <div id="gldv33etodaybar"><div class="today-label" id="gldv33etoday"></div></div>
+				</td>
+				<td class="comp" style="text-align: center">
+				  <div id="kaupetodaybar"><div class="today-label" id="kaupetoday"></div></div>
+				</td>
+				<td class="comp" style="text-align: center">
+				  <div id="janbangetodaybar"><div class="today-label" id="janbangetoday"></div></div>
+				</td>
+				<td class="comp" style="text-align: center">
+				   <div id="janniketodaybar"><div class="today-label" id="janniketoday"></div></div>
+				</td>
+				
+			</tr>
+			<tr>
+				<td class="comp"><b>Peak i dag</b></td>
+				<td class="comp" style="text-align: center">					
+					<span id="jbrpeakday"></span> W
+				</td>
+				<td class="comp" style="text-align: center">
+					<span id="plpeakday"></span> W
+				</td>
+				<td class="comp" style="text-align: center">
+					<span id="gldv33peakday"></span> W
+				</td>
+				<td class="comp" style="text-align: center">
+					<span id="kauppeakday"></span> W
+				</td>
+				<td class="comp" style="text-align: center">
+					<span id="janbangpeakday"></span> W
+				</td>
+			</tr>
+			<tr>
+				<td class="comp"><b>Peak over al tid</b></td>
+				<td class="comp" style="text-align: center">					
+					<span id="jbrpeakall"></span> W
+				</td>
+				<td class="comp" style="text-align: center">
+					<span id="plpeakall"></span> W
+				</td>
+				<td class="comp" style="text-align: center">
+					<span id="gldv33peakall"></span> W
+				</td>
+				<td class="comp" style="text-align: center">
+					<span id="kauppeakall"></span> W
+				</td>
+				<td class="comp" style="text-align: center">
+					<span id="janbangpeakall"></span> W
+				</td>
+			</tr>			
+			<tr>
+				<td class="comp"><b>Kort</b></td>
+				<td class="comp" style="text-align: center">					
+					<div style="height: 130px; width:130px;" id="jbrmap"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div style="height: 130px; width:130px;" id="plmap"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div style="height: 130px; width:130px;" id="gldv33map"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div style="height: 130px; width:130px;" id="kaupmap"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div style="height: 130px; width:130px;" id="janbangmap"></div>
+				</td>
+				<td class="comp" style="text-align: center">
+					<div style="height: 130px; width:130px;" id="jannikmap"></div>
+				</td>
+			</tr>			
+		</tbody>
+	</table>
+
+
+
+</body>
+</html>

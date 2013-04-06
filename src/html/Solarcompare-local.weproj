@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<WebEditorProject>
+    <!---->
+    <ProjectInformation>
+        <ProjectName>Solarcompare-local</ProjectName>
+        <ProjectVersion>1.2</ProjectVersion>
+        <ServerInfo ServerID="-1"></ServerInfo>
+        <S-DriveURL></S-DriveURL>
+    </ProjectInformation>
+    <!---->
+    <ProjectTreeFirstLevel>
+        <Node Type="5" LinkName="">./oldindex.html</Node>
+    </ProjectTreeFirstLevel>
+    <!---->
+    <ShowedFiles />
+    <!---->
+</WebEditorProject>

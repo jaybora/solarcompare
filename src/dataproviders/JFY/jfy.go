@@ -19,7 +19,7 @@ type jfyDataProvider struct {
 	client         *http.Client
 }
 
-const GetUrl = "http://10.0.1.201:8081/json"
+const GetUrl = "http://cts.jbr.dk:81/json"
 
 var log = logger.NewLogger(logger.INFO, "Dataprovider: JFY:")
 
@@ -31,9 +31,12 @@ func (jfy *jfyDataProvider) Name() string {
 }
 
 func NewDataProvider(initiateData dataproviders.InitiateData,
-	term dataproviders.TerminateCallback) jfyDataProvider {
+	term dataproviders.TerminateCallback, 
+	client *http.Client,
+	pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+	statsStore dataproviders.PlantStatsStore) jfyDataProvider {
 	log.Debug("New JFY dataprovider")
-	client := &http.Client{}
+	
 
 	jfy := jfyDataProvider{initiateData,
 		make(chan chan dataproviders.PvData),
@@ -51,6 +54,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 			pv.EnergyToday = newpv.EnergyToday
 			pv.EnergyTotal = newpv.EnergyTotal
 			pv.VoltDc = newpv.VoltDc
+			pv.LatestUpdate = nil
 
 			return
 		},
@@ -67,8 +71,9 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		term,
 		jfy.terminateCh,
 		MAX_ERRORS,
-		"jbr")
-	go dataproviders.LatestPvData(jfy.latestReqCh, jfy.latestUpdateCh, jfy.terminateCh)
+		statsStore)
+	go dataproviders.LatestPvData(jfy.latestReqCh, jfy.latestUpdateCh, jfy.terminateCh, 
+	                              pvDataUpdatedEvent, initiateData.PlantKey)
 
 	return jfy
 }
@@ -90,6 +95,7 @@ func updatePvData(client *http.Client) (pv dataproviders.PvData, err error) {
 	b, _ := ioutil.ReadAll(resp.Body)
 	log.Tracef("Received body from server: %s", b)
 	err = json.Unmarshal(b, &pv)
+	pv.LatestUpdate = nil
 	log.Tracef("pv is now %s", pv)
 	return
 }

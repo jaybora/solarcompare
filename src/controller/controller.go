@@ -24,12 +24,20 @@ var lock = sync.RWMutex{}
 // The map where the live dataproviders are kept
 type Controller struct {
 	live map[string]dataproviders.DataProvider
+	newClient dispatcher.NewClient
+	pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent
+	statsStore dataproviders.PlantStatsStore
 }
 
 // Create a new controller
 // Only one for entire app
-func NewController() Controller {
-	c := Controller{map[string]dataproviders.DataProvider{}}
+func NewController(newClient dispatcher.NewClient, 
+                   pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+                   statsStore dataproviders.PlantStatsStore) Controller {
+	c := Controller{map[string]dataproviders.DataProvider{}, 
+	                newClient, 
+	                pvDataUpdatedEvent,
+	                statsStore}
 	go printStatus(&c)
 	return c
 }
@@ -100,7 +108,10 @@ func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
 		plantdata.InitiateData,
 		func() {
 			c.providerTerminated(plantdata.PlantKey)
-		})
+		}, 
+		c.newClient,
+		c.pvDataUpdatedEvent,
+		c.statsStore)
 	if err != nil {
 		return err
 	}

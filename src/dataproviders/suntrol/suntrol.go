@@ -46,9 +46,11 @@ func (dp *dataProvider) Name() string {
 }
 
 func NewDataProvider(initiateData dataproviders.InitiateData, 
-                     term dataproviders.TerminateCallback) dataProvider {
+                     term dataproviders.TerminateCallback,
+                     client *http.Client,
+                     pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+                     statsStore dataproviders.PlantStatsStore) dataProvider {
 	log.Debug("New dataprovider")
-	client := &http.Client{}
 
 	dp := dataProvider{initiateData,
 		make(chan chan dataproviders.PvData),
@@ -67,7 +69,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 			pv = pvint
 			return
 		}, 
-		time.Minute * 5,
+		time.Minute * 1,
 		time.Minute * 5,
 		time.Minute * 30,
 		dp.latestUpdateCh,
@@ -75,8 +77,9 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		term,
 		dp.terminateCh,
 		MAX_ERRORS,
-		"jannik")
-	go dataproviders.LatestPvData(dp.latestReqCh, dp.latestUpdateCh, dp.terminateCh)
+		statsStore)
+	go dataproviders.LatestPvData(dp.latestReqCh, dp.latestUpdateCh, dp.terminateCh,
+		pvDataUpdatedEvent, initiateData.PlantKey)
 
 	return dp
 }

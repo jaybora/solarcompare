@@ -2,7 +2,7 @@ package sunnyportal
 
 import (
 	"bufio"
-	"crypto/tls"
+
 	"dataproviders"
 	"encoding/json"
 	"fmt"
@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"net"
 )
 
 type sunnyDataProvider struct {
@@ -25,7 +24,7 @@ type sunnyDataProvider struct {
 	latestErr      error
 	client         *http.Client
 	viewstate      string //Something that sma portal uses, must be posted to login
-	plantname      string
+	Plantname      string
 
 }
 
@@ -33,21 +32,9 @@ type smaPacReply struct {
 	CurrentPlantPower string `json:"currentPlantPower"`
 }
 
-type Jar struct {
-	cookies []*http.Cookie
-}
 
-func (jar *Jar) SetCookies(u *url.URL, cookies []*http.Cookie) {
-	for _, cookie := range cookies {
-		jar.cookies = append(jar.cookies, cookie)
-	}
-}
 
-func (jar *Jar) Cookies(u *url.URL) []*http.Cookie {
-	return jar.cookies
-}
-
-var log = logger.NewLogger(logger.INFO, "Dataprovider: SunnyPortal:")
+var log = logger.NewLogger(logger.DEBUG, "Dataprovider: SunnyPortal:")
 
 const MAX_ERRORS = 5
 //const INACTIVE_TIMOUT = 300 //secs
@@ -65,14 +52,26 @@ const smaCsvDateFormat = "1/2/06"
 const smaWebDateFormat = "1/2/2006"
 
 func (sunny *sunnyDataProvider) Name() string {
-	return sunny.plantname
+	return sunny.Plantname
 }
 
 func NewDataProvider(initiateData dataproviders.InitiateData,
-	term dataproviders.TerminateCallback) (sunny sunnyDataProvider, err error) {
+	term dataproviders.TerminateCallback, client *http.Client,
+	pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+	statsStore dataproviders.PlantStatsStore) (sunny sunnyDataProvider, err error) {
 
 	log.Debug("New dataprovider")
+	/*
 	jar := new(Jar)
+    client := &http.Client{
+		Transport: &urlfetch.Transport{
+			Context: c,
+			AllowInvalidServerCertificate: true,
+		},
+		Jar: jar,
+	}
+	*/
+    /*
 	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		Dial: func(netw, addr string) (net.Conn, error) {
 			// Specify timeout/deadline
@@ -85,6 +84,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 			return c, nil
 		}}
 	client := &http.Client{Transport: transport, Jar: jar}
+	*/
 
 	sunny = sunnyDataProvider{initiateData,
 		make(chan chan dataproviders.PvData),
@@ -98,15 +98,22 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 	go dataproviders.LatestPvData(
 		sunny.latestReqCh,
 		sunny.latestUpdateCh,
-		sunny.terminateCh)
+		sunny.terminateCh,
+		pvDataUpdatedEvent,
+		initiateData.PlantKey)
 	
-	go initiate(&sunny, initiateData, term, sunny.terminateCh)
+	go initiate(&sunny, initiateData, term, sunny.terminateCh, pvDataUpdatedEvent, statsStore)
 	
 	return
 		
 }
 
-func initiate(sunny *sunnyDataProvider, initiateData dataproviders.InitiateData, term dataproviders.TerminateCallback, termCh chan int) {
+func initiate(sunny *sunnyDataProvider, 
+              initiateData dataproviders.InitiateData, 
+              term dataproviders.TerminateCallback, 
+              termCh chan int,
+              pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+              statsStore dataproviders.PlantStatsStore) {
 
 	// First request will start a session on the server
 	// And give us cookies and viewstate that we need when logging in
@@ -137,13 +144,13 @@ func initiate(sunny *sunnyDataProvider, initiateData dataproviders.InitiateData,
 		return
 	}
 	
-	sunny.plantname, err = sunny.plantName()
+	sunny.Plantname, err = sunny.plantName()
 	if err != nil {
 		term()
 		termCh <- 0
 		return
 	}
-	log.Infof("Plant %s is now online", sunny.plantname)
+	log.Infof("Plant %s is now online", sunny.Plantname)
 
 	go dataproviders.RunUpdates(
 		&initiateData,
@@ -151,6 +158,7 @@ func initiate(sunny *sunnyDataProvider, initiateData dataproviders.InitiateData,
 			pac, err := updatePacData(sunny.client)
 			pvin.PowerAc = pac
 			pv = pvin
+			pv.LatestUpdate = nil
 			return
 		},
 		func(id *dataproviders.InitiateData, pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
@@ -172,7 +180,7 @@ func initiate(sunny *sunnyDataProvider, initiateData dataproviders.InitiateData,
 		term,
 		sunny.terminateCh,
 		MAX_ERRORS,
-		sunny.plantname)
+		statsStore)
 
 
 

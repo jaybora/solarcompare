@@ -3,9 +3,6 @@ package dataproviders
 import (
 	"logger"
 	"time"
-	"io/ioutil"
-	"encoding/json"
-
 )
 
 type PlantStats struct {
@@ -15,10 +12,17 @@ type PlantStats struct {
 	PowerAcPeakTodayTime time.Time
 }
 
+type PlantStatsStore interface {
+	LoadStats(plantkey string) PlantStats
+	SaveStats(plantkey string, pv *PvData)
+}
+
 type InitiateData struct {
+	PlantKey string
 	UserName string
 	Password string
 	PlantNo  string
+	Address  string
 }
 
 var log = logger.NewLogger(logger.DEBUG, "Dataprovider: generic: ")
@@ -30,6 +34,9 @@ type DataProvider interface {
 
 type TerminateCallback func()
 
+// Callback event that is run whenever updated data is available
+type PvDataUpdatedEvent func(plantkey string, pv PvData)
+
 type UpdatePvData func(i *InitiateData, pv PvData) (pv PvData, err error)
 
 // List of all known dataproviders
@@ -38,39 +45,8 @@ const (
 	FJY         = iota
 	SunnyPortal = iota
 	Suntrol     = iota
+	Danfoss     = iota
 )
-
-const Statfilename = "_stats.json"
-
-// Load up stats from filesystem
-func loadStats(plantkey string) PlantStats {
-	stats := PlantStats{}
-	bytes, err := ioutil.ReadFile(plantkey + Statfilename)
-	if err != nil {
-		log.Infof("Error in reading statfile for plant %s: %s", plantkey, err.Error())
-		return stats
-	}
-	err = json.Unmarshal(bytes, &stats)
-	return stats;
-}
-
-func saveStats(plantkey string, pv *PvData) {
-	stats := PlantStats{}
-	stats.PowerAcPeakAll = pv.PowerAcPeakAll
-	stats.PowerAcPeakAllTime = pv.PowerAcPeakAllTime
-	stats.PowerAcPeakToday = pv.PowerAcPeakToday
-	stats.PowerAcPeakTodayTime = pv.PowerAcPeakTodayTime
-	bytes, err := json.Marshal(stats)
-	if err != nil {
-		log.Failf("Could not marshal plant stats for plant %s: %s", plantkey, err.Error())
-		return
-	}
-	err = ioutil.WriteFile(plantkey + Statfilename, bytes, 0777)
-	if err != nil {
-		log.Failf("Could not write plant stats for plant %s: %s", plantkey, err.Error())
-		return
-	}
-} 
 
 // RunUpdates on the provider. 
 // updateFast, a function that gets called when a fast update is scheduled
@@ -84,7 +60,7 @@ func saveStats(plantkey string, pv *PvData) {
 // termCh, a channel to signal when RunUpdates should terminate
 // errClose, maximum number of errors received before giving up, and terminates
 func RunUpdates(initiateData *InitiateData,
-    updateFast UpdatePvData,
+	updateFast UpdatePvData,
 	updateSlow UpdatePvData,
 	fastTime time.Duration,
 	slowTime time.Duration,
@@ -94,11 +70,10 @@ func RunUpdates(initiateData *InitiateData,
 	term TerminateCallback,
 	termCh chan int,
 	errClose int,
-	plantkey string) {
+	statsStore PlantStatsStore) {
+
 	log.Trace("Started a RunUpdates rutine")
-	stats := loadStats(plantkey)
-	
-	
+	stats := statsStore.LoadStats(initiateData.PlantKey)
 
 	// Fast Ticker
 	fastTick := time.NewTicker(fastTime)
@@ -114,17 +89,17 @@ func RunUpdates(initiateData *InitiateData,
 	firstRun := true
 
 	shutdown := func() {
-		log.Infof("About to terminate RunUpdates for plant %s", plantkey)
+		log.Infof("About to terminate RunUpdates for plant %s", initiateData.PlantKey)
 		fastTick.Stop()
 		slowTick.Stop()
 		terminateTicker.Stop()
 		pvCh := make(chan PvData)
 		reqCh <- pvCh
 		pv := <-pvCh
-		saveStats(plantkey, &pv) 
+		statsStore.SaveStats(initiateData.PlantKey, &pv)
 		term()
 		termCh <- 0
-		log.Infof("RunUpdates exited for plant %s", plantkey)
+		log.Infof("RunUpdates exited for plant %s", initiateData.PlantKey)
 		return
 	}
 
@@ -150,12 +125,18 @@ LOOP:
 			pv = <-pvCh
 		}
 		pv, err := updateFast(initiateData, pv)
+		if err != nil {
+			errCounter++
+			log.Infof("There was on error on updatePvData: %s, error counter is now %d for plant %s",
+				err.Error(), errCounter, initiateData.PlantKey)
+		}
 		if firstRun {
 			pv, err = updateSlow(initiateData, pv)
 		}
 		if err != nil {
 			errCounter++
-			log.Infof("There was on error on updatePvData: %s, error counter is now %d for plant %s", err.Error(), errCounter, plantkey)
+			log.Infof("There was on error on updatePvData: %s, error counter is now %d for plant %s",
+				err.Error(), errCounter, initiateData.PlantKey)
 		} else {
 			updateCh <- pv
 			firstRun = false
@@ -175,12 +156,13 @@ LOOP:
 			pv, err := updateSlow(initiateData, pv)
 			if err != nil {
 				errCounter++
-				log.Infof("There was on error on updatePvData: %s, error counter is now %d for plant %s", err.Error(), errCounter, plantkey)
+				log.Infof("There was on error on updatePvData: %s, error counter is now %d for plant %s",
+					err.Error(), errCounter, initiateData.PlantKey)
 			} else {
 				updateCh <- pv
 			}
-			
-			saveStats(plantkey, &pv)
+
+			statsStore.SaveStats(initiateData.PlantKey, &pv)
 			if errCounter > errClose {
 				break LOOP
 			}
@@ -195,8 +177,8 @@ LOOP:
 }
 
 func midnight() time.Time {
-	y,m,d := time.Now().Date();
-	return time.Date(y,m,d,0,0,0,0,time.Local)
+	y, m, d := time.Now().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.Local)
 }
 
 // This will handle the latestdata we have
@@ -205,40 +187,54 @@ func midnight() time.Time {
 // Should run as a goroutine
 func LatestPvData(reqCh chan chan PvData,
 	updateCh chan PvData,
-	terminateCh chan int) {
+	terminateCh chan int,
+	pvDataUpdatedEvent PvDataUpdatedEvent,
+	plantKey string) {
 	latestData := PvData{}
 
-	// Wait here until first data is received 
-/*
-	select {
-	case latestData = <-updateCh:
-		latestData.LatestUpdate = time.Now()
-	case <-terminateCh:
-		log.Debug("Terminated latestData")
-		return
-	}
-*/
 	for {
 		select {
-		case latestData = <-updateCh:
-			if latestData.PowerAcPeakAll < latestData.PowerAc {
-				latestData.PowerAcPeakAll = latestData.PowerAc
-				latestData.PowerAcPeakAllTime = time.Now();
+		case newLatestData := <-updateCh:
+			if newLatestData.LatestUpdate == nil {
+				t := time.Now()
+				newLatestData.LatestUpdate = &t
 			}
+
+			latestData.PowerAc = newLatestData.PowerAc
+			latestData.AmpereAc = newLatestData.AmpereAc
+			latestData.EnergyToday = newLatestData.EnergyToday
+			latestData.EnergyTotal = newLatestData.EnergyTotal
+			latestData.State = newLatestData.State
+			latestData.VoltDc = newLatestData.VoltDc
+			latestData.LatestUpdate = newLatestData.LatestUpdate
 			
+			// If the Peak is set in the new update use that
+			if newLatestData.PowerAcPeakAll > latestData.PowerAcPeakAll {
+				latestData.PowerAcPeakAll = newLatestData.PowerAcPeakAll
+				latestData.PowerAcPeakAllTime = newLatestData.PowerAcPeakAllTime	
+			}
+			if newLatestData.PowerAcPeakToday > latestData.PowerAcPeakToday {
+				latestData.PowerAcPeakToday = newLatestData.PowerAcPeakToday
+				latestData.PowerAcPeakTodayTime = newLatestData.PowerAcPeakTodayTime	
+			}
+
+			if latestData.PowerAcPeakAll < newLatestData.PowerAc {
+				latestData.PowerAcPeakAll = newLatestData.PowerAc
+				latestData.PowerAcPeakAllTime = *newLatestData.LatestUpdate
+			}
+
 			// Reset peak today if lasttime is less than now
 			if latestData.PowerAcPeakTodayTime.Before(midnight()) {
-				log.Debugf("Resetting PowerAcPeakToday because we passed midnight, %s is before %s",latestData.PowerAcPeakTodayTime, midnight())
-				latestData.PowerAcPeakTodayTime = time.Now()
-				latestData.PowerAcPeakToday = latestData.PowerAc
+				log.Debugf("Resetting PowerAcPeakToday because we passed midnight, %s is before %s", latestData.PowerAcPeakTodayTime, midnight())
+				latestData.PowerAcPeakToday = newLatestData.PowerAc
+				latestData.PowerAcPeakTodayTime = *newLatestData.LatestUpdate
 			}
-			if latestData.PowerAcPeakToday < latestData.PowerAc {
-				log.Debugf("Updating PowerAcPeakToday beause the latest (%i) was higher", latestData.PowerAc)
-				latestData.PowerAcPeakToday = latestData.PowerAc
-				latestData.PowerAcPeakTodayTime = time.Now();
-			}			
-			t := time.Now()
-			latestData.LatestUpdate = &t 
+			if latestData.PowerAcPeakToday < newLatestData.PowerAc {
+				log.Debugf("Updating PowerAcPeakToday beause the latest (%i) was higher", newLatestData.PowerAc)
+				latestData.PowerAcPeakToday = newLatestData.PowerAc
+				latestData.PowerAcPeakTodayTime = *newLatestData.LatestUpdate
+			}
+			pvDataUpdatedEvent(plantKey, latestData)
 		case repCh := <-reqCh:
 			repCh <- latestData
 		case <-terminateCh:

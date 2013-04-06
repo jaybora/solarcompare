@@ -14,13 +14,19 @@ type PlantDataGetter interface {
 }
 
 func PlantHandler(w http.ResponseWriter, r *http.Request, 
-		c *controller.Controller, pg PlantDataGetter) {
-	plantkey := plantKey(r.URL.String())
+		c *controller.Controller, pg PlantDataGetter, devappserver bool) {
+	plantkey := PlantKey(r.URL.String(), devappserver)
 	if plantkey == "" {
 		listPlants(w, pg)
 		return
 	}
-    
+
+    if c == nil {
+    	err := fmt.Errorf("Controller not started")
+    	http.Error(w, err.Error(), http.StatusInternalServerError)
+    	return
+    }
+
     
     //Lookup plantdata	
     plantdata := pg.PlantData(plantkey)
@@ -57,11 +63,14 @@ func listPlants(w http.ResponseWriter, pg PlantDataGetter) {
 	w.Write(pg.ToJson())
 } 
 
-func plantKey(url string) string {
+func PlantKey(url string, devappserver bool) string {
+	keypos := 2
+	if !devappserver {
+		keypos += 2
+	} 
 	parts := strings.Split(url, "/")
-	if len(parts) > 2 {
-		return strings.Split(parts[2], "?")[0]
+	if len(parts) > keypos {
+		return strings.Split(parts[keypos], "?")[0]
 	}
 	return ""
-	
 }
