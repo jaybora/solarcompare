@@ -15,9 +15,6 @@ import (
 
 type dataProvider struct {
 	InitiateData   dataproviders.InitiateData
-	latestReqCh    chan chan dataproviders.PvData
-	latestUpdateCh chan dataproviders.PvData
-	terminateCh    chan int
 	latestErr      error
 	client         *http.Client
 }
@@ -45,62 +42,54 @@ func (d *dataProvider) Name() string {
 func NewDataProvider(initiateData dataproviders.InitiateData, 
                      term dataproviders.TerminateCallback,
                      client *http.Client,
-                     pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+                     pvStore dataproviders.PvStore,
                      statsStore dataproviders.PlantStatsStore) dataProvider {
 	log.Debug("New dataprovider")
 
 	dp := dataProvider{initiateData,
-		make(chan chan dataproviders.PvData),
-		make(chan dataproviders.PvData),
-		make(chan int),
 		nil,
 		client}
 	go dataproviders.RunUpdates(
 		&initiateData,
-		func(initiateData *dataproviders.InitiateData, pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
-			pv, err = updatePvData(client, initiateData)
-			return
+		func(initiateData *dataproviders.InitiateData, pv *dataproviders.PvData) error {
+			err := updatePvData(client, initiateData, pv)
+			pv.LatestUpdate = nil
+			return err
 		}, 
-		func(initiateData *dataproviders.InitiateData, pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
-			// To prevent zero when provider is starting up
-			pv = pvint
-			return
+		func(initiateData *dataproviders.InitiateData, pv *dataproviders.PvData) error {
+			return nil
 		}, 
 		time.Second * 10,
 		time.Minute * 5,
 		time.Minute * 30,
-		dp.latestUpdateCh,
-		dp.latestReqCh,
 		term,
-		dp.terminateCh,
 		MAX_ERRORS,
-		statsStore)
-	go dataproviders.LatestPvData(dp.latestReqCh, dp.latestUpdateCh, dp.terminateCh,
-		pvDataUpdatedEvent, initiateData.PlantKey)
+		statsStore,
+		pvStore)
 
 	return dp
 }
 
 // Update PvData
-func updatePvData(client *http.Client, initiateData *dataproviders.InitiateData) (pv dataproviders.PvData, err error) {
+func updatePvData(client *http.Client, initiateData *dataproviders.InitiateData, pv *dataproviders.PvData) error {
 	log.Debug("Fetching update ...")
 	sid, err := login(client, initiateData)
 	if err != nil {
 		// Try force logout
 		forcelogout(client, initiateData)
-		return
+		return err
 	}
 	
 	b, err := genericdata(sid, client, initiateData)
 	
-	err = pac(sid, client, initiateData, &pv, &b)
-	if err != nil {return}
-	err = etoday(sid, client, initiateData, &pv, &b)
-	if err != nil {return}
-	err = etotal(sid, client, initiateData, &pv, &b)
-	if err != nil {return}
+	err = pac(sid, client, initiateData, pv, &b)
+	if err != nil {return err}
+	err = etoday(sid, client, initiateData, pv, &b)
+	if err != nil {return err}
+	err = etotal(sid, client, initiateData, pv, &b)
+	if err != nil {return err}
 	logout(sid, client, initiateData)
-	return
+	return nil
 }
 
 func login(client *http.Client, 
@@ -298,13 +287,4 @@ func logout(sid string, client *http.Client, initiateData *dataproviders.Initiat
 	b, _ := ioutil.ReadAll(resp.Body)
 	log.Tracef("Received body from server: %s", b)
 	resp.Body.Close()
-}
-
-// Get latest PvData
-func (dp *dataProvider) PvData() (pv dataproviders.PvData, err error) {
-	reqCh := make(chan dataproviders.PvData)
-	dp.latestReqCh <- reqCh
-	pv = <-reqCh
-	log.Tracef("Returning PvData as %s", pv)
-	return
 }

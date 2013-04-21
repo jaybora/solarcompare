@@ -6,6 +6,7 @@ import (
 	"strings"
 	"controller"
 	"plantdata"
+	"dataproviders"
 )
 
 type PlantDataGetter interface {
@@ -14,7 +15,9 @@ type PlantDataGetter interface {
 }
 
 func PlantHandler(w http.ResponseWriter, r *http.Request, 
-		c *controller.Controller, pg PlantDataGetter, devappserver bool) {
+		c *controller.Controller, pg PlantDataGetter, 
+		pvStore dataproviders.PvStore,
+		devappserver bool) {
 	plantkey := PlantKey(r.URL.String(), devappserver)
 	if plantkey == "" {
 		listPlants(w, pg)
@@ -40,14 +43,15 @@ func PlantHandler(w http.ResponseWriter, r *http.Request,
     // Go to the controller with the plantdata
     // The controller will start up a plant service if its not allready live
     // We get the provider from the controller
-    provider, err := c.Provider(plantdata)
+    err := c.Provider(plantdata)
     if err != nil {
     	http.Error(w, err.Error(), http.StatusInternalServerError)
     	return
     }
     
 	w.Header().Set("Content-Type", "application/json")
-	pvdata, err := provider.PvData()
+	pvdata := pvStore.Get(plantkey)
+	//pvdata, err := provider.PvData()
     if err != nil {
     	http.Error(w, err.Error(), http.StatusInternalServerError)
     	return

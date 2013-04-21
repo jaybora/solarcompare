@@ -33,18 +33,18 @@ var plantmap = map[string]plantdata.PlantData {
 	                           Name: "Klarinetvej 25",
 	                           DataProvider: dataproviders.FJY,
 	                           InitiateData: dataproviders.InitiateData{PlantKey: "jbr"}},
-	"peterlarsen": plantdata.PlantData{PlantKey: "peterlarsen", 
-	                           Name: "Guldnældevænget 35",
-	                           DataProvider: dataproviders.SunnyPortal,
-	                           InitiateData: dataproviders.InitiateData{"peterlarsen", "jesper@jbr.dk", "cidaxura", "3", ""}},
-	"kaup": plantdata.PlantData{PlantKey: "kaup", 
-	                           Name: "Pandebjergvej",
-	                           DataProvider: dataproviders.SunnyPortal,
-	                           InitiateData: dataproviders.InitiateData{"kaup", "jesper@jbr.dk", "cidaxura", "2",""}},
-	"gldv33": plantdata.PlantData{PlantKey: "gldv33", 
-	                           Name: "Guldnældevænget 33",
-	                           DataProvider: dataproviders.SunnyPortal,
-	                           InitiateData: dataproviders.InitiateData{"gldv33", "jesper@jbr.dk", "cidaxura", "1", ""}},
+//	"peterlarsen": plantdata.PlantData{PlantKey: "peterlarsen", 
+//	                           Name: "Guldnældevænget 35",
+//	                           DataProvider: dataproviders.SunnyPortal,
+//	                           InitiateData: dataproviders.InitiateData{"peterlarsen", "jesper@jbr.dk", "cidaxura", "3", ""}},
+//	"kaup": plantdata.PlantData{PlantKey: "kaup", 
+//	                           Name: "Pandebjergvej",
+//	                           DataProvider: dataproviders.SunnyPortal,
+//	                           InitiateData: dataproviders.InitiateData{"kaup", "jesper@jbr.dk", "cidaxura", "2",""}},
+//	"gldv33": plantdata.PlantData{PlantKey: "gldv33", 
+//	                           Name: "Guldnældevænget 33",
+//	                           DataProvider: dataproviders.SunnyPortal,
+//	                           InitiateData: dataproviders.InitiateData{"gldv33", "jesper@jbr.dk", "cidaxura", "1", ""}},
 	"janbang": plantdata.PlantData{PlantKey: "janbang", 
 	                           Name: "Fuglehaven",
 	                           DataProvider: dataproviders.Danfoss,
@@ -62,13 +62,15 @@ var ctrlrlock = sync.RWMutex{}
 var ctrlr *controller.Controller
 
 var ctrlrfunc = func(c appengine.Context) {
-	c.Infof("Starting controller...")
+	c.Infof("Checking for controller...")
 	ctrlrlock.RLock()
 	if ctrlr != nil {
 		ctrlrlock.RUnlock()
 		// Controller allready loaded. Do nothing then
+		c.Debugf("Controller allready running. Did nothing then")
 		return
 	} else {
+		c.Debugf("No controller was running, checking if someone else started a new controller...")
 		// No controller, startup a new controller
 		// Lock again to prevent that multiple controllers would be started
 		ctrlrlock.RUnlock()
@@ -76,9 +78,11 @@ var ctrlrfunc = func(c appengine.Context) {
 		// Look again if someone else has started the controller
 		if ctrlr != nil {
 			// Controller allready loaded. Do nothing then
+			c.Debugf("Someone else started the controller. Did nothing then")
 			ctrlrlock.Unlock()
 			return
 		} else {
+			c.Infof("No controller was running, now starting a new one...")
 			newctrlr := controller.NewController(
 				func() *http.Client {
 					jar := new(Jar)
@@ -166,6 +170,25 @@ func handleStop(w http.ResponseWriter, r *http.Request) {
 	// When this is called, no new requests will reach the instance.
 
 	c := appengine.NewContext(r)
+	
+	c.Infof("Backend stop request. Writing peaks to datastore...")
+	for k, _ := range plantmap {
+		i, err := memcache.Get(c, "pvdata:"+k)
+		if err != nil {
+			c.Debugf("Could not get pvdata from memcache for %s due to %s", k, err.Error())
+			continue		
+		}
+		pv := dataproviders.PvData{}
+		err = json.Unmarshal(i.Value, &pv)
+		if err != nil {
+			c.Infof("Could not unmarshal pvdata from memcache for %s due to %s", k, err.Error())
+			continue
+		}
+		ss := StatsStore{c}
+		ss.SaveStats(k, &pv)
+	}
+	
+	
 	c.Infof("Backend stopped.")
 }
 
@@ -207,6 +230,7 @@ func (s StatsStore) LoadStats(plantkey string) dataproviders.PlantStats {
 	if err := json.Unmarshal([]byte(ds.Json), &stats); err != nil {
 		s.c.Infof("Could not umarshal plantstats for %s from datastore due to %s", plantkey, err.Error())
 	}
+	//s.c.Debugf("Loaded stats for %s, as %s", plantkey, ds.Json)
 	return stats
 }
 
@@ -228,4 +252,5 @@ func (s StatsStore) SaveStats(plantkey string, pv *dataproviders.PvData) {
 		s.c.Errorf("Could not write plant stats for plant %s: %s, %s", plantkey, bytes, err.Error())
 		return
 	}
+	//s.c.Debugf("Stats saved for %s as %s", plantkey, bytes)
 }

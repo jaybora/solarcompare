@@ -21,7 +21,10 @@ func (p PlantStatsStore) SaveStats(plantkey string, pv *dataproviders.PvData) {}
 
 func Test_Connection (t *testing.T) {
 	t.Log("Trying to launch provider...")
-	pv, err := updatePvData(httpclient.NewClient(), &dataproviders.InitiateData{"jan", "anonym", "anonym", "", "5.103.131.3"})
+	pv := dataproviders.PvData{}
+	err := updatePvData(httpclient.NewClient(), 
+				&dataproviders.InitiateData{"jan", "anonym", "anonym", "", "5.103.131.3"},
+				&pv)
 	
 	if err != nil {
 		t.Error(err.Error())

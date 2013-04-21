@@ -10,8 +10,11 @@
     <!---->
     <ProjectTreeFirstLevel>
         <Node Type="5" LinkName="">./oldindex.html</Node>
+        <Node Type="5" LinkName="">./scripts/formatdate.js</Node>
     </ProjectTreeFirstLevel>
     <!---->
-    <ShowedFiles />
+    <ShowedFiles>
+        <ShowedFileEditor2 FirstVisibleLine="0" CursorPosition="0">./scripts/formatdate.js</ShowedFileEditor2>
+    </ShowedFiles>
     <!---->
 </WebEditorProject>

@@ -12,9 +12,9 @@ import (
 
 type jfyDataProvider struct {
 	InitiateData   dataproviders.InitiateData
-	latestReqCh    chan chan dataproviders.PvData
-	latestUpdateCh chan dataproviders.PvData
-	terminateCh    chan int
+//	latestReqCh    chan chan dataproviders.PvData
+//	latestUpdateCh chan dataproviders.PvData
+//	terminateCh    chan int
 	latestErr      error
 	client         *http.Client
 }
@@ -33,22 +33,22 @@ func (jfy *jfyDataProvider) Name() string {
 func NewDataProvider(initiateData dataproviders.InitiateData,
 	term dataproviders.TerminateCallback, 
 	client *http.Client,
-	pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+	pvStore dataproviders.PvStore,
 	statsStore dataproviders.PlantStatsStore) jfyDataProvider {
 	log.Debug("New JFY dataprovider")
 	
 
 	jfy := jfyDataProvider{initiateData,
-		make(chan chan dataproviders.PvData),
-		make(chan dataproviders.PvData),
-		make(chan int),
+//		make(chan chan dataproviders.PvData),
+//		make(chan dataproviders.PvData),
+//		make(chan int),
 		nil,
 		client}
 	go dataproviders.RunUpdates(
 		&initiateData,
-		func(id *dataproviders.InitiateData, pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
-		    pv = pvint
+		func(id *dataproviders.InitiateData, pv *dataproviders.PvData) error {
 			newpv, err := updatePvData(client)
+			if err != nil {return err}
 			pv.PowerAc = newpv.PowerAc
 			pv.AmpereAc = newpv.AmpereAc
 			pv.EnergyToday = newpv.EnergyToday
@@ -56,24 +56,20 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 			pv.VoltDc = newpv.VoltDc
 			pv.LatestUpdate = nil
 
-			return
+			return nil
 		},
-		func(id *dataproviders.InitiateData, pvint dataproviders.PvData) (pv dataproviders.PvData, err error) {
-			// To prevent zero when provider is starting up
-			pv = pvint
-			return
+		func(id *dataproviders.InitiateData, pv *dataproviders.PvData) error {
+			return nil
 		},
 		time.Second*5,
 		time.Minute*5,
 		time.Minute*30,
-		jfy.latestUpdateCh,
-		jfy.latestReqCh,
 		term,
-		jfy.terminateCh,
 		MAX_ERRORS,
-		statsStore)
-	go dataproviders.LatestPvData(jfy.latestReqCh, jfy.latestUpdateCh, jfy.terminateCh, 
-	                              pvDataUpdatedEvent, initiateData.PlantKey)
+		statsStore,
+		pvStore)
+	//go dataproviders.LatestPvData(jfy.latestReqCh, jfy.latestUpdateCh, jfy.terminateCh, 
+	//                              pvDataUpdatedEvent, initiateData.PlantKey)
 
 	return jfy
 }
@@ -100,11 +96,11 @@ func updatePvData(client *http.Client) (pv dataproviders.PvData, err error) {
 	return
 }
 
-// Get latest PvData
-func (jfy *jfyDataProvider) PvData() (pv dataproviders.PvData, err error) {
-	reqCh := make(chan dataproviders.PvData)
-	jfy.latestReqCh <- reqCh
-	pv = <-reqCh
-	log.Tracef("Returning PvData as %s", pv)
-	return
-}
+//// Get latest PvData
+//func (jfy *jfyDataProvider) PvData() (pv dataproviders.PvData, err error) {
+//	reqCh := make(chan dataproviders.PvData)
+//	jfy.latestReqCh <- reqCh
+//	pv = <-reqCh
+//	log.Tracef("Returning PvData as %s", pv)
+//	return
+//}

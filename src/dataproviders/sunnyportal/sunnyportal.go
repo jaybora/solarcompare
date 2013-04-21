@@ -18,9 +18,6 @@ import (
 
 type sunnyDataProvider struct {
 	InitiateData   dataproviders.InitiateData
-	latestReqCh    chan chan dataproviders.PvData
-	latestUpdateCh chan dataproviders.PvData
-	terminateCh    chan int
 	latestErr      error
 	client         *http.Client
 	viewstate      string //Something that sma portal uses, must be posted to login
@@ -57,52 +54,18 @@ func (sunny *sunnyDataProvider) Name() string {
 
 func NewDataProvider(initiateData dataproviders.InitiateData,
 	term dataproviders.TerminateCallback, client *http.Client,
-	pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+	pvStore dataproviders.PvStore,
 	statsStore dataproviders.PlantStatsStore) (sunny sunnyDataProvider, err error) {
 
 	log.Debug("New dataprovider")
-	/*
-	jar := new(Jar)
-    client := &http.Client{
-		Transport: &urlfetch.Transport{
-			Context: c,
-			AllowInvalidServerCertificate: true,
-		},
-		Jar: jar,
-	}
-	*/
-    /*
-	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		Dial: func(netw, addr string) (net.Conn, error) {
-			// Specify timeout/deadline
-			deadline := time.Now().Add(30 * time.Second)
-			c, err := net.DialTimeout(netw, addr, 5 * time.Second)
-			if err != nil {
-				return nil, err
-			}
-			c.SetDeadline(deadline)
-			return c, nil
-		}}
-	client := &http.Client{Transport: transport, Jar: jar}
-	*/
 
 	sunny = sunnyDataProvider{initiateData,
-		make(chan chan dataproviders.PvData),
-		make(chan dataproviders.PvData),
-		make(chan int),
 		nil,
 		client,
 		"",
 		""}
-		
-	go dataproviders.LatestPvData(
-		sunny.latestReqCh,
-		sunny.latestUpdateCh,
-		sunny.terminateCh,
-		pvDataUpdatedEvent,
-		initiateData.PlantKey)
 	
-	go initiate(&sunny, initiateData, term, sunny.terminateCh, pvDataUpdatedEvent, statsStore)
+	go initiate(&sunny, initiateData, term, pvStore, statsStore)
 	
 	return
 		
@@ -111,8 +74,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 func initiate(sunny *sunnyDataProvider, 
               initiateData dataproviders.InitiateData, 
               term dataproviders.TerminateCallback, 
-              termCh chan int,
-              pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+              pvStore dataproviders.PvStore,
               statsStore dataproviders.PlantStatsStore) {
 
 	// First request will start a session on the server
@@ -120,67 +82,62 @@ func initiate(sunny *sunnyDataProvider,
 	err := sunny.preLogin()
 	if err != nil {
 		term()
-		termCh <- 0
 		return
 	}
 	err = sunny.login(initiateData.UserName, initiateData.Password)
 	if err != nil {
 		term()
-		termCh <- 0
 		return
 	}
 
 	_, err = sunny.plantName()
 	if err != nil {
 		term()
-		termCh <- 0
 		return
 	}
 
 	err = sunny.setPlantNo(initiateData.PlantNo)
 	if err != nil {
 		term()
-		termCh <- 0
 		return
 	}
 	
 	sunny.Plantname, err = sunny.plantName()
 	if err != nil {
 		term()
-		termCh <- 0
 		return
 	}
 	log.Infof("Plant %s is now online", sunny.Plantname)
 
 	go dataproviders.RunUpdates(
 		&initiateData,
-		func(id *dataproviders.InitiateData, pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
+		func(id *dataproviders.InitiateData, pv *dataproviders.PvData) error {
 			pac, err := updatePacData(sunny.client)
-			pvin.PowerAc = pac
-			pv = pvin
+			if err != nil {return err}
+			pv.PowerAc = pac
+			
 			pv.LatestUpdate = nil
-			return
+			return nil
 		},
-		func(id *dataproviders.InitiateData, pvin dataproviders.PvData) (pv dataproviders.PvData, err error) {
+		func(id *dataproviders.InitiateData, pv *dataproviders.PvData) error {
 			pvdaily, err := updateDailyProduction(sunny.client)
+			if err != nil {return err}
 			today, ok := pvdaily[nowDate()]
 			if ok {
-				pvin.EnergyToday = today
+				pv.EnergyToday = today
 			} else {
-				pvin.EnergyToday = 9999
+				pv.EnergyToday = 0
 			}
-			pv = pvin
-			return
+			
+			return nil
 		},
 		time.Second*5,
 		time.Minute*5,
 		time.Minute*30,
-		sunny.latestUpdateCh,
-		sunny.latestReqCh,
 		term,
-		sunny.terminateCh,
 		MAX_ERRORS,
-		statsStore)
+		statsStore,
+		pvStore)
 
 
 
@@ -443,14 +400,6 @@ func nowDate() string {
 	return time.Now().Format(keyDateFormat)
 }
 
-// Get latest PvData
-func (sunny *sunnyDataProvider) PvData() (pv dataproviders.PvData, err error) {
-	reqCh := make(chan dataproviders.PvData)
-	sunny.latestReqCh <- reqCh
-	pv = <-reqCh
-	log.Tracef("Returning PvData as %s", pv.ToJson())
-	return
-}
 
 func (c *sunnyDataProvider) printCookies() {
 	log.Trace("Cookies in store is now:")

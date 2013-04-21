@@ -13,7 +13,6 @@ import (
 	"plantdata"
 	"sync"
 	"logger"
-	"time"
 )
 
 var log = logger.NewLogger(logger.TRACE, "Controller: ")
@@ -23,31 +22,31 @@ var lock = sync.RWMutex{}
 
 // The map where the live dataproviders are kept
 type Controller struct {
-	live map[string]dataproviders.DataProvider
+	live map[string]string
 	newClient dispatcher.NewClient
-	pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent
+	pvStore dataproviders.PvStore
 	statsStore dataproviders.PlantStatsStore
 }
 
 // Create a new controller
 // Only one for entire app
 func NewController(newClient dispatcher.NewClient, 
-                   pvDataUpdatedEvent dataproviders.PvDataUpdatedEvent,
+                   pvStore dataproviders.PvStore,
                    statsStore dataproviders.PlantStatsStore) Controller {
-	c := Controller{map[string]dataproviders.DataProvider{}, 
+	c := Controller{map[string]string{}, 
 	                newClient, 
-	                pvDataUpdatedEvent,
+	                pvStore,
 	                statsStore}
-	go printStatus(&c)
+	//go printStatus(&c)
 	return c
 }
 
 // Get the channel for the live provider of the given plantkey
 // If the plant is not live, the controller will start a 
 // new dataprovider
-func (c *Controller) Provider(plantdata *plantdata.PlantData) (provider dataproviders.DataProvider, err error) {
+func (c *Controller) Provider(plantdata *plantdata.PlantData) (err error) {
 	lock.RLock()
-	provider, ok := c.live[plantdata.PlantKey]
+	_, ok := c.live[plantdata.PlantKey]
 	lock.RUnlock()
 	if ok {
 		return
@@ -56,7 +55,7 @@ func (c *Controller) Provider(plantdata *plantdata.PlantData) (provider dataprov
 		// Lock again to prevent that multiple providers would be started
 		lock.Lock();
 		// Look again if someone else has started the provider
-		provider, ok = c.live[plantdata.PlantKey]
+		_, ok = c.live[plantdata.PlantKey]
 		if ok {
 			log.Infof("Someone else started the provider for plant %s", plantdata.PlantKey)
 			lock.Unlock()
@@ -68,54 +67,54 @@ func (c *Controller) Provider(plantdata *plantdata.PlantData) (provider dataprov
 			lock.Unlock()
 			return
 		}
-		//lock.RLock()
-		provider, _ = c.live[plantdata.PlantKey]
+		//provider, _ = c.live[plantdata.PlantKey]
 		lock.Unlock()
 		return
 	}
 	return
 }
-
-func printStatus(c *Controller) {
-	tick := time.NewTicker(1 * time.Minute)
-	tickCh := tick.C
-	
-	for {
-		<-tickCh
-		log.Info("List of online plants:")
-		log.Info("----------------------------------------------------")
-		lock.RLock();
-		for k, v := range c.live {
-			pvdata, _ := v.PvData()
-			if pvdata.LatestUpdate == nil {
-				log.Infof(" - %s, no update yet", k)
-			} else {
-				log.Infof(" - %s, latest update at %s", k, pvdata.LatestUpdate.Format(time.RFC822))
-			}
-		}
-		lock.RUnlock();
-		log.Info("----------------------------------------------------")
-	}
-
-
-}
+//
+//func printStatus(c *Controller) {
+//	tick := time.NewTicker(1 * time.Minute)
+//	tickCh := tick.C
+//	
+//	for {
+//		<-tickCh
+//		log.Info("List of online plants:")
+//		log.Info("----------------------------------------------------")
+//		lock.RLock();
+//		for k, v := range c.live {
+//			pvdata, _ := v.PvData()
+//			if pvdata.LatestUpdate == nil {
+//				log.Infof(" - %s, no update yet", k)
+//			} else {
+//				log.Infof(" - %s, latest update at %s", k, pvdata.LatestUpdate.Format(time.RFC822))
+//			}
+//		}
+//		lock.RUnlock();
+//		log.Info("----------------------------------------------------")
+//	}
+//
+//
+//}
 
 func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
 	json, _ := plantdata.ToJson()
 	log.Infof("Starting new dataprovider for plant %s", json)
 
-	p, err := dispatcher.Provider(plantdata.DataProvider,
+	err := dispatcher.Provider(plantdata.DataProvider,
 		plantdata.InitiateData,
 		func() {
 			c.providerTerminated(plantdata.PlantKey)
 		}, 
 		c.newClient,
-		c.pvDataUpdatedEvent,
+		c.pvStore,
 		c.statsStore)
 	if err != nil {
 		return err
 	}
-	c.live[plantdata.PlantKey] = p
+	//Just adding plantkey to value is we dont have anything real to add
+	c.live[plantdata.PlantKey] = plantdata.PlantKey 
 	return nil
 
 }

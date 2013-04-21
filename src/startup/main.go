@@ -13,7 +13,10 @@ import (
 	"time"
 	"httpclient"
 	"io/ioutil"
+	"sync"
 )
+
+import _ "net/http/pprof"
 
 var log = logger.NewLogger(logger.INFO, "main: ")
 
@@ -51,13 +54,14 @@ var plantmap = map[string]plantdata.PlantData {
 
 
 func main() {
+	pvStore := NewPvStore()
 	plants := staticPlants{plantmap}
 	controller := controller.NewController(httpclient.NewClient, 
-		func(plantkey string, pv dataproviders.PvData){},
+		 pvStore,
 		 StatsStore{})
 	http.HandleFunc("/", web.DefaultHandler)
 	http.HandleFunc("/plant/", func(w http.ResponseWriter, r *http.Request) {
-		web.PlantHandler(w, r, &controller, plants, true)
+		web.PlantHandler(w, r, &controller, plants, pvStore, true)
 	})
 	http.Handle("/scripts/",  http.FileServer(http.Dir(".")))
 	http.Handle("/html/",  http.FileServer(http.Dir(".")))
@@ -87,10 +91,36 @@ func (s staticPlants)ToJson() []byte {
 }
 
 
+type PvStore struct {
+	// Locker for sync'ing the live map
+	pvStoreLock sync.RWMutex
+	pvDataMap map[string]dataproviders.PvData
+}
+
+func NewPvStore() PvStore {
+	pvStoreLock := sync.RWMutex{}
+	pvDataMap := map[string]dataproviders.PvData{}
+	return PvStore{pvStoreLock, pvDataMap}
+}
+
+func (p PvStore)Set(plantkey string, pv *dataproviders.PvData) {
+	p.pvStoreLock.Lock()
+	p.pvDataMap[plantkey] = *pv
+	p.pvStoreLock.Unlock()
+}
+
+func (p PvStore)Get(plantkey string) dataproviders.PvData {
+	p.pvStoreLock.RLock()
+	defer func() {
+		p.pvStoreLock.RUnlock()
+	}()
+	return p.pvDataMap[plantkey]
+} 
+
+
 const Statfilename = "_stats.json"
 
 type StatsStore struct {
-
 }
 
 // Load up stats from filesystem
@@ -122,3 +152,4 @@ func (s StatsStore)SaveStats(plantkey string, pv *dataproviders.PvData) {
 		return
 	}
 }
+
