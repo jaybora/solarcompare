@@ -40,7 +40,7 @@ body { font:13px/1.231 sans-serif; *font-size:small; color:#FFFFFF;}
 select, input, textarea, button { font:99% sans-serif; }
 pre, code, kbd, samp { font-family: monospace, sans-serif; }
 
-html { overflow-y: scroll; background-color:#F0F099}
+html { overflow-y: scroll; background-color:#FFFFFF}
 a:hover, a:active { outline: none; }
 ul, ol { margin-left: 2em; }
 ol { list-style-type: decimal; }
@@ -139,7 +139,7 @@ nav{
 
 nav.user{
 	float:right;
-	margin-top:10px;
+	margin-top:15px;
 }
 
 nav ul, nav ul li{
