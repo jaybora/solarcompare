@@ -6,6 +6,7 @@ import (
 	"dataproviders/sunnyportal"
 	"dataproviders/suntrol"
 	"dataproviders/danfoss"
+	"dataproviders/kostal"
 	"fmt"
 	"net/http"
 )
@@ -38,6 +39,10 @@ func Provider(implType int,
 		return
 	case dataproviders.Danfoss:
 		danfoss.NewDataProvider(init, term, newClient(), pvStore, statsStore)
+		//provider = &dp
+		return
+	case dataproviders.Kostal:
+		kostal.NewDataProvider(init, term, newClient(), pvStore, statsStore)
 		//provider = &dp
 		return
 	err = fmt.Errorf("No provider found for %d", implType)
