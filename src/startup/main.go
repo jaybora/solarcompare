@@ -48,8 +48,8 @@ var plantmap = map[string]plantdata.PlantData {
 	                           InitiateData: dataproviders.InitiateData{"janbang", "anonym", "anonym", "", "5.103.131.3"}},
 	"lysningen": plantdata.PlantData{PlantKey: "lysningen", 
 	                           Name: "Janniks anlæg",
-	                           DataProvider: dataproviders.Suntrol,
-	                           InitiateData: dataproviders.InitiateData{PlantKey: "lysningen", PlantNo: "7982"}},
+	                           DataProvider: dataproviders.Kostal,
+	                           InitiateData: dataproviders.InitiateData{"lysningen", "pvserver", "2674", "", "2.104.143.225"}},
 }
 
 
