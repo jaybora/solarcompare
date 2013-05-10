@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Solarcompare</title>
-<meta name="viewport" content="initial-scale=1">
+<title>Solar Compare</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.1/themes/base/jquery-ui.css" />
+<link rel="stylesheet" href="css/style.css" />
 <script type='text/javascript' src="scripts/formatdate.js"></script>
 <script src="http://code.jquery.com/jquery-1.6.4.min.js"></script>
 <script type='text/javascript' src='https://www.google.com/jsapi'></script>
@@ -148,19 +149,8 @@
   	$.getJSON( "../plant/lysningen", function(data) {
   		console.log('Got reply, updating values on page...')
   		updateGrid('jannik', data);
-  		/*
-  		$('#janniktoday').html(data.EnergyToday)
-  		var update = new Date(Date.parse(data.LatestUpdate))
-  		if (!isNaN(update.getHours()))
-	  		$('#jannikupd').html(update.getHours() + ":" + update.getMinutes() + ":" + update.getSeconds())
-	  		*/
+
   	} )
-/*
-  	if (prevMaxPac != maxPac) {
-  		renderGauges();
-  		prevMaxPac = maxPac;
-  	}
-  	*/
   }
 
   </script>
@@ -184,13 +174,7 @@ p.update-text {
 	font-size: 8pt;
 }
 
-h1 {
-	font-size: 20pt;
-	color: white;
-	background-color: #999999;
-	font-weight: bold;
-	padding: 10px;
-}
+
 
 .today-label {
     float: right;
@@ -221,7 +205,15 @@ h1 {
 <body>
 
 
-	<h1>Solcelle sammenlign</h1>
+	
+	<div id="header-container">
+		<header class="wrapper">
+			<h1 id="title">Solar Compare</h1>
+			<nav class="user">
+				<a href="/login">Log p&aring;</a>
+			</nav>
+		</header>
+	</div>
 	<!--
 	<table class="comp" id="comparisontable">
 		<thead>
@@ -315,6 +307,9 @@ h1 {
 				<td class="comp" style="text-align: center">
 					<span id="janbangpeakday"></span> W
 				</td>
+				<td class="comp" style="text-align: center">
+					<span id="jannikpeakday"></span> W
+				</td>
 			</tr>
 			<tr>
 				<td class="comp"><b>Peak over al tid</b></td>
@@ -332,6 +327,9 @@ h1 {
 				</td>
 				<td class="comp" style="text-align: center">
 					<span id="janbangpeakall"></span> W
+				</td>
+				<td class="comp" style="text-align: center">
+					<span id="jannikpeakall"></span> W
 				</td>
 			</tr>			
 			<tr>
