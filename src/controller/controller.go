@@ -113,7 +113,7 @@ func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
 	if err != nil {
 		return err
 	}
-	//Just adding plantkey to value is we dont have anything real to add
+	//Just adding plantkey to value as we dont have anything real to add
 	c.live[plantdata.PlantKey] = plantdata.PlantKey 
 	return nil
 
