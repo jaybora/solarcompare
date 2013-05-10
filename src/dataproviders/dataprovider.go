@@ -44,6 +44,7 @@ const (
 	SunnyPortal = iota
 	Suntrol     = iota
 	Danfoss     = iota
+	Kostal      = iota
 )
 
 // RunUpdates on the provider. 
