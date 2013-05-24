@@ -35,7 +35,8 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
                      term dataproviders.TerminateCallback,
                      client *http.Client,
                      pvStore dataproviders.PvStore,
-                     statsStore dataproviders.PlantStatsStore) dataProvider {
+                     statsStore dataproviders.PlantStatsStore,
+                     terminateCh chan int) dataProvider {
 	log.Debug("New dataprovider")
 
 	dp := dataProvider{initiateData,
@@ -54,6 +55,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		time.Second * 10,
 		time.Minute * 5,
 		time.Minute * 30,
+		terminateCh,
 		term,
 		MAX_ERRORS,
 		statsStore,

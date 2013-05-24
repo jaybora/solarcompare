@@ -22,21 +22,24 @@ var lock = sync.RWMutex{}
 
 // The map where the live dataproviders are kept
 type Controller struct {
-	live map[string]string
+	live map[string]chan int
 	newClient dispatcher.NewClient
 	pvStore dataproviders.PvStore
 	statsStore dataproviders.PlantStatsStore
+	terminateCallback func(plantKey *string)
 }
 
 // Create a new controller
 // Only one for entire app
 func NewController(newClient dispatcher.NewClient, 
                    pvStore dataproviders.PvStore,
-                   statsStore dataproviders.PlantStatsStore) Controller {
-	c := Controller{map[string]string{}, 
+                   statsStore dataproviders.PlantStatsStore,
+                   terminateCallback func(plantKey *string)) Controller {
+	c := Controller{map[string]chan int{}, 
 	                newClient, 
 	                pvStore,
-	                statsStore}
+	                statsStore,
+	                terminateCallback}
 	//go printStatus(&c)
 	return c
 }
@@ -73,6 +76,20 @@ func (c *Controller) Provider(plantdata *plantdata.PlantData) (err error) {
 	}
 	return
 }
+
+func (c *Controller) Terminate(plantdata *plantdata.PlantData) {
+	lock.RLock()
+	terminateCh, ok := c.live[plantdata.PlantKey]
+	lock.RUnlock()
+	if ok {
+		// Signal terminate on channel to dataprovider
+		log.Debugf("Request for termination of plant %s", plantdata.PlantKey)
+		terminateCh <- 1;
+	} else {
+		log.Infof("Could not terminate plant %s, as it is not found", plantdata.PlantKey)
+	}
+}
+
 //
 //func printStatus(c *Controller) {
 //	tick := time.NewTicker(1 * time.Minute)
@@ -101,20 +118,23 @@ func (c *Controller) Provider(plantdata *plantdata.PlantData) (err error) {
 func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
 	json, _ := plantdata.ToJson()
 	log.Infof("Starting new dataprovider for plant %s", json)
+	
+	terminateCh := make(chan int)
 
 	err := dispatcher.Provider(plantdata.DataProvider,
 		plantdata.InitiateData,
 		func() {
 			c.providerTerminated(plantdata.PlantKey)
 		}, 
+		terminateCh,
 		c.newClient,
 		c.pvStore,
 		c.statsStore)
 	if err != nil {
 		return err
 	}
-	//Just adding plantkey to value as we dont have anything real to add
-	c.live[plantdata.PlantKey] = plantdata.PlantKey 
+	//Adding terminate ch. Signaling this will terminate the dataprovider
+	c.live[plantdata.PlantKey] = terminateCh
 	return nil
 
 }
@@ -124,4 +144,5 @@ func (c *Controller) providerTerminated(plantKey string) {
 	lock.Lock()
 	delete(c.live, plantKey)
 	lock.Unlock()
+	c.terminateCallback(&plantKey)
 }

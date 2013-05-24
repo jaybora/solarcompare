@@ -25,7 +25,7 @@ type PlantData struct {
 	Picture      []byte
 	CellData     CellData
 	InverterData InverterData
-	InitiateData dataproviders.InitiateData `json:"-"`
+	InitiateData dataproviders.InitiateData 
 	PvData       dataproviders.PvData       `json:"-"` //Live data 
 	// The dataproviders implementation
 	DataProvider int

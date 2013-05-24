@@ -55,7 +55,8 @@ func (sunny *sunnyDataProvider) Name() string {
 func NewDataProvider(initiateData dataproviders.InitiateData,
 	term dataproviders.TerminateCallback, client *http.Client,
 	pvStore dataproviders.PvStore,
-	statsStore dataproviders.PlantStatsStore) (sunny sunnyDataProvider, err error) {
+	statsStore dataproviders.PlantStatsStore,
+	terminateCh chan int) (sunny sunnyDataProvider, err error) {
 
 	log.Debug("New dataprovider")
 
@@ -65,7 +66,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		"",
 		""}
 	
-	go initiate(&sunny, initiateData, term, pvStore, statsStore)
+	go initiate(&sunny, initiateData, term, pvStore, statsStore, terminateCh)
 	
 	return
 		
@@ -75,7 +76,8 @@ func initiate(sunny *sunnyDataProvider,
               initiateData dataproviders.InitiateData, 
               term dataproviders.TerminateCallback, 
               pvStore dataproviders.PvStore,
-              statsStore dataproviders.PlantStatsStore) {
+              statsStore dataproviders.PlantStatsStore,
+              terminateCh chan int) {
 
 	// First request will start a session on the server
 	// And give us cookies and viewstate that we need when logging in
@@ -134,6 +136,7 @@ func initiate(sunny *sunnyDataProvider,
 		time.Second*5,
 		time.Minute*5,
 		time.Minute*30,
+		terminateCh,
 		term,
 		MAX_ERRORS,
 		statsStore,

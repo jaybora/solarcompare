@@ -53,6 +53,7 @@ const (
 // fastTime, secs on updateFast should be scheduled
 // slowTime, secs on updateSlow should be scheduled
 // terminateTime, secs on how long the provider will stay online before it terminates
+// terminateCh, signaling here will terminate the dataprovider
 // term, a function that gets called when RunUpdates terminates
 // errClose, maximum number of errors received before giving up, and terminates
 // statsStore service for storinging peak
@@ -63,6 +64,7 @@ func RunUpdates(initiateData *InitiateData,
 	fastTime time.Duration,
 	slowTime time.Duration,
 	terminateTime time.Duration,
+	terminateCh chan int,
 	term TerminateCallback,
 	errClose int,
 	statsStore PlantStatsStore,
@@ -79,7 +81,7 @@ func RunUpdates(initiateData *InitiateData,
 	slowTickCh := slowTick.C
 	// Terminate ticker
 	terminateTicker := time.NewTicker(terminateTime)
-	terminateCh := terminateTicker.C
+	terminateChTick := terminateTicker.C
 
 	errCounter := 0
 	firstRun := true
@@ -89,13 +91,9 @@ func RunUpdates(initiateData *InitiateData,
 		fastTick.Stop()
 		slowTick.Stop()
 		terminateTicker.Stop()
-		//pvCh := make(chan PvData)
-		//reqCh <- pvCh
-		//pv := <- pvCh
 		pv := pvStore.Get(initiateData.PlantKey)
 		statsStore.SaveStats(initiateData.PlantKey, &pv)
 		term()
-		//termCh <- 0
 		log.Infof("RunUpdates exited for plant %s", initiateData.PlantKey)
 		return
 	}
@@ -162,8 +160,11 @@ LOOP:
 
 		case <-terminateCh:
 			break LOOP
-		}
+		
 
+		case <-terminateChTick:
+			break LOOP
+		}
 	}
 
 	shutdown()

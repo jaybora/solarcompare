@@ -34,7 +34,8 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 	term dataproviders.TerminateCallback, 
 	client *http.Client,
 	pvStore dataproviders.PvStore,
-	statsStore dataproviders.PlantStatsStore) jfyDataProvider {
+	statsStore dataproviders.PlantStatsStore,
+	terminateCh chan int) jfyDataProvider {
 	log.Debug("New JFY dataprovider")
 	
 
@@ -64,6 +65,7 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		time.Second*5,
 		time.Minute*5,
 		time.Minute*30,
+		terminateCh,
 		term,
 		MAX_ERRORS,
 		statsStore,
