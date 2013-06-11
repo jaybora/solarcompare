@@ -47,7 +47,7 @@ func NewController(newClient dispatcher.NewClient,
 // Get the channel for the live provider of the given plantkey
 // If the plant is not live, the controller will start a 
 // new dataprovider
-func (c *Controller) Provider(plantdata *plantdata.PlantData) (err error) {
+func (c *Controller) Provider(plantdata *plantdata.Plant) (err error) {
 	lock.RLock()
 	_, ok := c.live[plantdata.PlantKey]
 	lock.RUnlock()
@@ -77,7 +77,7 @@ func (c *Controller) Provider(plantdata *plantdata.PlantData) (err error) {
 	return
 }
 
-func (c *Controller) Terminate(plantdata *plantdata.PlantData) {
+func (c *Controller) Terminate(plantdata *plantdata.Plant) {
 	lock.RLock()
 	terminateCh, ok := c.live[plantdata.PlantKey]
 	lock.RUnlock()
@@ -115,7 +115,7 @@ func (c *Controller) Terminate(plantdata *plantdata.PlantData) {
 //
 //}
 
-func (c *Controller) startNewProvider(plantdata *plantdata.PlantData) error {
+func (c *Controller) startNewProvider(plantdata *plantdata.Plant) error {
 	json, _ := plantdata.ToJson()
 	log.Infof("Starting new dataprovider for plant %s", json)
 	

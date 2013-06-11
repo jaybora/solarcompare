@@ -1,4 +1,6 @@
-// +build appengine
+// +build !appengine
+
+// This is no longer used as we dont use backend on the app engine anymore
 
 package startup
 
@@ -24,32 +26,32 @@ import (
 var log = logger.NewLogger(logger.INFO, "main: ")
 
 type staticPlants struct {
-	plants map[string]plantdata.PlantData
+	plants map[string]plantdata.Plant
 }
 
 // Load up an example plant
-var plantmap = map[string]plantdata.PlantData {
-	"jbr": plantdata.PlantData{PlantKey: "jbr", 
+var plantmap = map[string]plantdata.Plant {
+	"jbr": plantdata.Plant{PlantKey: "jbr", 
 	                           Name: "Klarinetvej 25",
 	                           DataProvider: dataproviders.FJY,
 	                           InitiateData: dataproviders.InitiateData{PlantKey: "jbr"}},
-//	"peterlarsen": plantdata.PlantData{PlantKey: "peterlarsen", 
+//	"peterlarsen": plantdata.Plant{PlantKey: "peterlarsen", 
 //	                           Name: "Guldnældevænget 35",
 //	                           DataProvider: dataproviders.SunnyPortal,
 //	                           InitiateData: dataproviders.InitiateData{"peterlarsen", "jesper@jbr.dk", "cidaxura", "3", ""}},
-//	"kaup": plantdata.PlantData{PlantKey: "kaup", 
+//	"kaup": plantdata.Plant{PlantKey: "kaup", 
 //	                           Name: "Pandebjergvej",
 //	                           DataProvider: dataproviders.SunnyPortal,
 //	                           InitiateData: dataproviders.InitiateData{"kaup", "jesper@jbr.dk", "cidaxura", "2",""}},
-//	"gldv33": plantdata.PlantData{PlantKey: "gldv33", 
+//	"gldv33": plantdata.Plant{PlantKey: "gldv33", 
 //	                           Name: "Guldnældevænget 33",
 //	                           DataProvider: dataproviders.SunnyPortal,
 //	                           InitiateData: dataproviders.InitiateData{"gldv33", "jesper@jbr.dk", "cidaxura", "1", ""}},
-	"janbang": plantdata.PlantData{PlantKey: "janbang", 
+	"janbang": plantdata.Plant{PlantKey: "janbang", 
 	                           Name: "Fuglehaven",
 	                           DataProvider: dataproviders.Danfoss,
 	                           InitiateData: dataproviders.InitiateData{"janbang", "anonym", "anonym", "", "5.103.131.3"}},
-	"lysningen": plantdata.PlantData{PlantKey: "lysningen", 
+	"lysningen": plantdata.Plant{PlantKey: "lysningen", 
 	                           Name: "Janniks anlæg",
 	                           DataProvider: dataproviders.Suntrol,
 	                           InitiateData: dataproviders.InitiateData{PlantKey: "lysningen", PlantNo: "7982"}},
@@ -192,7 +194,7 @@ func handleStop(w http.ResponseWriter, r *http.Request) {
 	c.Infof("Backend stopped.")
 }
 
-func (s staticPlants) PlantData(plantkey string) *plantdata.PlantData {
+func (s staticPlants) Plant(plantkey string) *plantdata.Plant {
 	log.Tracef("Getting plant for plantkey: %s", plantkey)
 	plant, ok := s.plants[plantkey]
 	if !ok {

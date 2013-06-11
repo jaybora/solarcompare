@@ -5,33 +5,40 @@ import (
 	"encoding/json"
 )
 
-type InverterData struct {
-	InverterVendor   string
-	InverterModel    string
-	InverterCapacity uint16
+type Inverter struct {
+	Vendor   string
+	Model    string
+	Capacity int16
 }
 
-type CellData struct {
-	CellVendor   string
-	CellModel    string
-	CellCapatity uint16
+type Panels struct {
+	Vendor   string
+	Model    string
+	Capacity int16
+	Pieces   int16
 }
 
-type PlantData struct {
-	PlantKey     string
+type Plant struct {
+	PlantKey     string `goon:"id"`
+	User         string 
 	Name         string
 	Latitide     string
 	Longitude    string
 	Picture      []byte
-	CellData     CellData
-	InverterData InverterData
+	Panels       Panels
+	Inverter     Inverter
 	InitiateData dataproviders.InitiateData 
-	PvData       dataproviders.PvData       `json:"-"` //Live data 
+	//PvData       dataproviders.PvData       `json:"-"` //Live data 
 	// The dataproviders implementation
 	DataProvider int
 }
 
-func (data *PlantData) ToJson() (b []byte, err error) {
+func (data *Plant) ToJson() (b []byte, err error) {
 	b, err = json.MarshalIndent(data, "", "  ")
+	return
+}
+
+func ToPlant(jsonBytes *[]byte) (plantdata Plant, err error) {
+	err = json.Unmarshal(*jsonBytes, &plantdata)
 	return
 }

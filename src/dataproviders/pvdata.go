@@ -27,13 +27,9 @@ func (data *PvData) ToJson() (b []byte) {
 	return
 }
 
-func FromJson(b []byte) PvData {
-	p := PvData{}
-	err := json.Unmarshal(b, &p)
-	if err != nil {
-		log.Failf("ERROR on unmashalling pvdata from JSON: %s", err.Error())
-	}
-	return p
+func ToPvData(b []byte) (pvdata PvData, err error) {
+	err = json.Unmarshal(b, &pvdata)
+	return 
 }
 
 const KeyDateFormat = "20060102"

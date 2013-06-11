@@ -3,10 +3,12 @@
 package httpclient
 
 import (
-	"net/http"
 	"crypto/tls"
-	"net/url"
+	"fmt"
 	"net"
+	"net/http"
+	//	"net/http/cookiejar"
+	"net/url"
 	"time"
 )
 
@@ -24,21 +26,28 @@ func (jar *Jar) Cookies(u *url.URL) []*http.Cookie {
 	return jar.cookies
 }
 
+func noRedirects(req *http.Request, via []*http.Request) error {
+	return fmt.Errorf("Dont follow redirects")
+}
+
 // Creates a new client with cookie jar support, and no TLS check, and deadline set
 func NewClient() *http.Client {
+	//jar, _ := cookiejar.New(nil)
 	jar := new(Jar)
-	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		Dial: func(netw, addr string) (net.Conn, error) {
 			// Specify timeout/deadline
-			deadline := time.Now().Add(60 * time.Second)
-			c, err := net.DialTimeout(netw, addr, 60 * time.Second)
+			deadline := time.Now().Add(30 * time.Second)
+			c, err := net.DialTimeout(netw, addr, 5*time.Second)
 			if err != nil {
 				return nil, err
 			}
 			c.SetDeadline(deadline)
 			return c, nil
 		}}
-	return &http.Client{Transport: transport, Jar: jar}
+	return &http.Client{Transport: transport,
+		Jar:           jar,
+		CheckRedirect: noRedirects}
 
 }
-

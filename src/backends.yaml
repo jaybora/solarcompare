@@ -1,4 +1,0 @@
-backends:
-- name: datagrabber
-  class: B1
-  options: dynamic, public

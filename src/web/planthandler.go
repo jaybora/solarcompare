@@ -11,16 +11,16 @@ import (
 	"encoding/json"
 )
 
-type PlantDataStore interface {
-	Get(plantkey string) *plantdata.PlantData
-	Add(plantkey string, plant *plantdata.PlantData)
+type PlantStore interface {
+	Get(plantkey string) *plantdata.Plant
+	Add(plantkey string, plant *plantdata.Plant)
 	Remove(plantkey string)
 	ToJson() []byte
 }
 
 func PlantHandler(w http.ResponseWriter, r *http.Request, 
 		c *controller.Controller, 
-		pg PlantDataStore, 
+		pg PlantStore, 
 		pvStore dataproviders.PvStore,
 		devappserver bool) {
 	plantkey := PlantKey(r.URL.String(), devappserver)
@@ -48,13 +48,13 @@ func PlantHandler(w http.ResponseWriter, r *http.Request,
 func handlePut(w http.ResponseWriter, r *http.Request, 
         plantkey *string,
 		c *controller.Controller, 
-		pg PlantDataStore, 
+		pg PlantStore, 
 		pvStore dataproviders.PvStore) {    
     
     buffer := bytes.NewBuffer([]byte{})
     buffer.ReadFrom(r.Body)
     jsonBody := buffer.Bytes()
-    plantdata := plantdata.PlantData{}
+    plantdata := plantdata.Plant{}
     err := json.Unmarshal(jsonBody, &plantdata)
     if err != nil {
     	http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -70,7 +70,7 @@ func handlePut(w http.ResponseWriter, r *http.Request,
 func handleDelete(w http.ResponseWriter, r *http.Request, 
         plantkey *string,
 		c *controller.Controller, 
-		pg PlantDataStore, 
+		pg PlantStore, 
 		pvStore dataproviders.PvStore) {    
     //Lookup plantdata	
     plantdata := pg.Get(*plantkey)
@@ -92,7 +92,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request,
 func handleGet(w http.ResponseWriter, r *http.Request, 
         plantkey *string,
 		c *controller.Controller, 
-		pg PlantDataStore, 
+		pg PlantStore, 
 		pvStore dataproviders.PvStore) {    
     //Lookup plantdata	
     plantdata := pg.Get(*plantkey)
@@ -125,7 +125,7 @@ func handleGet(w http.ResponseWriter, r *http.Request,
 }
 
 // List all known plants if no plantkey is given
-func listPlants(w http.ResponseWriter, pg PlantDataStore) {
+func listPlants(w http.ResponseWriter, pg PlantStore) {
 	w.Header().Set("Content-Type", "application/json;  charset=utf-8")
 	w.Write(pg.ToJson())
 } 

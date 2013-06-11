@@ -5,6 +5,7 @@ import (
 
 	"dataproviders"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"logger"
@@ -17,23 +18,21 @@ import (
 )
 
 type sunnyDataProvider struct {
-	InitiateData   dataproviders.InitiateData
-	latestErr      error
-	client         *http.Client
-	viewstate      string //Something that sma portal uses, must be posted to login
-	Plantname      string
-
+	InitiateData dataproviders.InitiateData
+	latestErr    error
+	client       *http.Client
+	viewstate    string //Something that sma portal uses, must be posted to login
+	Plantname    string
 }
 
 type smaPacReply struct {
 	CurrentPlantPower string `json:"currentPlantPower"`
 }
 
-
-
-var log = logger.NewLogger(logger.DEBUG, "Dataprovider: SunnyPortal:")
+var log = logger.NewLogger(logger.TRACE, "Dataprovider: SunnyPortal:")
 
 const MAX_ERRORS = 5
+
 //const INACTIVE_TIMOUT = 300 //secs
 
 const startUrl = "http://www.sunnyportal.com/Templates/Start.aspx"
@@ -42,7 +41,7 @@ const profileUrl = "http://www.sunnyportal.com/FixedPages/PlantProfile.aspx"
 const pacUrl = "http://www.sunnyportal.com/Dashboard"
 const csvPostUrl = "http://sunnyportal.com/FixedPages/EnergyAndPower.aspx"
 const csvUrl = "http://sunnyportal.com/Templates/DownloadDiagram.aspx?down=diag"
-const plantSelectUrl = "http://sunnyportal.com/FixedPages/PlantProfile.aspx"
+const plantSelectUrl = "http://sunnyportal.com/FixedPages/Dashboard.aspx"
 
 const keyDateFormat = "20060102"
 const smaCsvDateFormat = "1/2/06"
@@ -65,19 +64,19 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 		client,
 		"",
 		""}
-	
+
 	go initiate(&sunny, initiateData, term, pvStore, statsStore, terminateCh)
-	
+
 	return
-		
+
 }
 
-func initiate(sunny *sunnyDataProvider, 
-              initiateData dataproviders.InitiateData, 
-              term dataproviders.TerminateCallback, 
-              pvStore dataproviders.PvStore,
-              statsStore dataproviders.PlantStatsStore,
-              terminateCh chan int) {
+func initiate(sunny *sunnyDataProvider,
+	initiateData dataproviders.InitiateData,
+	term dataproviders.TerminateCallback,
+	pvStore dataproviders.PvStore,
+	statsStore dataproviders.PlantStatsStore,
+	terminateCh chan int) {
 
 	// First request will start a session on the server
 	// And give us cookies and viewstate that we need when logging in
@@ -103,7 +102,7 @@ func initiate(sunny *sunnyDataProvider,
 		term()
 		return
 	}
-	
+
 	sunny.Plantname, err = sunny.plantName()
 	if err != nil {
 		term()
@@ -115,22 +114,26 @@ func initiate(sunny *sunnyDataProvider,
 		&initiateData,
 		func(id *dataproviders.InitiateData, pv *dataproviders.PvData) error {
 			pac, err := updatePacData(sunny.client)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 			pv.PowerAc = pac
-			
+
 			pv.LatestUpdate = nil
 			return nil
 		},
 		func(id *dataproviders.InitiateData, pv *dataproviders.PvData) error {
 			pvdaily, err := updateDailyProduction(sunny.client)
-			if err != nil {return err}
+			if err != nil {
+				return err
+			}
 			today, ok := pvdaily[nowDate()]
 			if ok {
 				pv.EnergyToday = today
 			} else {
 				pv.EnergyToday = 0
 			}
-			
+
 			return nil
 		},
 		time.Second*5,
@@ -141,8 +144,6 @@ func initiate(sunny *sunnyDataProvider,
 		MAX_ERRORS,
 		statsStore,
 		pvStore)
-
-
 
 	return
 }
@@ -155,11 +156,11 @@ func (c *sunnyDataProvider) preLogin() error {
 	}
 	defer resp.Body.Close()
 	defer func() {
-        if r := recover(); r != nil {
-            fmt.Println("Recovered in initiate", r)
-        }
-    }()
-    
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in initiate", r)
+		}
+	}()
+
 	log.Tracef("Got a %s reply on initiate cookies and viewstate", resp.Status)
 
 	reg, err := regexp.Compile("<input type=\"hidden\" name=\"__VIEWSTATE\" id=\"__VIEWSTATE\" value=\"[^\"]*")
@@ -181,59 +182,89 @@ func (c *sunnyDataProvider) login(username string, password string) error {
 	formData.Add("ctl00$ContentPlaceHolder1$Logincontrol1$txtUserName", username)
 	formData.Add("ctl00$ContentPlaceHolder1$Logincontrol1$txtPassword", password)
 	formData.Add("ctl00$ContentPlaceHolder1$Logincontrol1$LoginBtn", "Login")
-	log.Debugf("Posting to %s, with body: %s", loginUrl, formData)
+	log.Debugf("Posting to %s, with body: %s", loginUrl, formData.Encode())
 	resp, err := c.client.PostForm(loginUrl, formData)
-	if err != nil {
-		log.Fail(err.Error())
-		return err
-	}
-	defer resp.Body.Close()
-	ioutil.ReadAll(resp.Body)
-	
-	c.printCookies()
-
-	if resp.StatusCode == 302 {
+	if resp != nil && resp.StatusCode == 302 {
 		log.Debug("Login success!")
 	} else {
+		if err != nil {
+			log.Fail(err.Error())
+			return err
+		}
+		defer resp.Body.Close()
+
 		b, _ := ioutil.ReadAll(resp.Body)
 		log.Failf("Login failed, http status codes was %s\n%s", resp.Status, b)
 		return fmt.Errorf("Login to portal failed. Wrong username and password")
 	}
+
+	c.printCookies()
+
 	return nil
 }
 
 func (c *sunnyDataProvider) setPlantNo(plantno string) error {
+	// Try 5 times
+	err := errors.New("")
+	for i := 0; i < 5; i++ {
+		err = c.sendPlantNoSwitchCommand(plantno)
+		if err == nil {
+			log.Debug("setPlantNo successfull!")
+			return nil
+		}
+		log.Debugf("setPlantNo, try number %i", i)
+	}
+	return err
+}
+
+func (c *sunnyDataProvider) sendPlantNoSwitchCommand(plantno string) error {
 	formData := url.Values{}
 	formData.Add("__EVENTTARGET", fmt.Sprintf("ctl00$NavigationLeftMenuControl$0_%s", plantno))
-	//formData.Add("ctl00$HiddenPlantOID", "facb16e7-c40d-4316-a853-48c7620d1745")
 	formData.Add("__VIEWSTATE", "")
 	formData.Add("__EVENTARGUMENT", "")
 	formData.Add("ctl00$_scrollPosHidden", "")
 	formData.Add("LeftMenuNode_0", "1")
 	formData.Add("LeftMenuNode_1", "1")
 	formData.Add("LeftMenuNode_2", "0")
+	//--
+	//formData.Add("ctl00$HiddenPlantOID", "facb16e7-c40d-4316-a853-48c7620d1745")
+	formData.Add("TabSwitchDeviceSelectionHid", "1")
+	formData.Add("ctl00$ContentPlaceHolder1$FixPageWidth", "720")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$UserControlShowEnergyAndPower1$_datePicker$textBox", "6/7/2013")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$UserControlShowEnergyAndPower1$NavigateDivHidden", "")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$UserControlShowEnergyAndPower1$PlantName", "Guldnældevænget 33")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$UserControlShowEnergyAndPower1$SelectedIntervalID", "3")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$currentplantPowerWidgetContent$__dataFromCsharpPlantPowerWidgetControl",
+		";currentPlantPowerPointerAngle:78;x_hours_ago:{0} hours ago;just_now:just now;one_hours_ago:an hour ago;some_seconds_ago:a few seconds ago;x_minutes_ago:{0} minutes ago")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$currentplantPowerWidgetContent$__dataToCsharpPlantPowerWidgetControl", "")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$googleMapsWidgetLoader$SubControl$googleMapsWidgetContent$googleMapAdr", "")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$googleMapsWidgetLoader$SubControl$googleMapsWidgetContent$googleMapLat", "54.765422")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$googleMapsWidgetLoader$SubControl$googleMapsWidgetContent$googleMapLng", "11.87549")
+
+	c.printCookies()
 
 	log.Debugf("Posting to %s, with body: %s", plantSelectUrl, formData)
 	resp, err := c.client.PostForm(plantSelectUrl, formData)
-	if err != nil {
-		log.Fail(err.Error())
-		return err
-	}
-	defer resp.Body.Close()
-	ioutil.ReadAll(resp.Body)
-
-	if resp.StatusCode == 302 {
+	if resp != nil && resp.StatusCode == 302 {
 		log.Debug("Plant selection success!")
+		l, _ := resp.Location()
+		log.Tracef("Received location as %s", *l)
 	} else {
-		b, _ := ioutil.ReadAll(resp.Body)
-		log.Failf("Plant selection failed, http status codes was %s\n%s", resp.Status, b)
+		if err != nil {
+			log.Fail(err.Error())
+			return err
+		}
+		defer resp.Body.Close()
+		//b, _ :=
+		ioutil.ReadAll(resp.Body)
+		log.Failf("Plant selection failed, http status codes was %s\n", resp.Status)
 		return fmt.Errorf("Switch to plantno %s failed.", plantno)
 	}
+
 	return nil
 }
 
-
-func  (c *sunnyDataProvider) plantName() (name string, err error) {
+func (c *sunnyDataProvider) plantName() (name string, err error) {
 	log.Debugf("Getting from %s", profileUrl)
 	resp, err := c.client.Get(profileUrl)
 	if err != nil {
@@ -242,10 +273,10 @@ func  (c *sunnyDataProvider) plantName() (name string, err error) {
 	}
 	defer resp.Body.Close()
 	defer func() {
-        if r := recover(); r != nil {
-            fmt.Println("Recovered in plantName", r)
-        }
-    }()
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in plantName", r)
+		}
+	}()
 	b, _ := ioutil.ReadAll(resp.Body)
 
 	log.Debugf("Received status %d on request", resp.StatusCode)
@@ -258,7 +289,7 @@ func  (c *sunnyDataProvider) plantName() (name string, err error) {
 	}
 
 	found := reg.Find(b)
-	name = string(found[71:len(found)-7])
+	name = string(found[71 : len(found)-7])
 	log.Debugf("Plantname was found as %s", name)
 	return
 }
@@ -298,16 +329,17 @@ func updatePacData(c *http.Client) (pac uint16, err error) {
 func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDaily, err error) {
 	log.Debugf("Getting from %s", csvPostUrl)
 	resp, err := client.Get(csvPostUrl)
+
 	if err != nil {
 		log.Fail(err.Error())
 		return
 	}
 	defer resp.Body.Close()
 	defer func() {
-        if r := recover(); r != nil {
-            fmt.Println("Recovered in updateDailyProduction", r)
-        }
-    }()
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in updateDailyProduction", r)
+		}
+	}()
 	b, _ := ioutil.ReadAll(resp.Body)
 
 	log.Debugf("Received status %d on pre request", resp.StatusCode)
@@ -319,7 +351,7 @@ func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDai
 	}
 
 	found := reg.Find(b)
-	
+
 	viewstate := string(found[196:])
 	log.Debugf("Viewstate was found as %s", viewstate)
 
@@ -343,20 +375,17 @@ func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDai
 	//formData.Add("ctl00$HiddenPlantOID", "facb16e7-c40d-4316-a853-48c7620d1745")
 	log.Debugf("Posting to %s, with body: %s", csvPostUrl, formData)
 	resp, err = client.PostForm(csvPostUrl, formData)
-	if err != nil {
-		log.Fail(err.Error())
+	if resp.StatusCode == 200 || resp.StatusCode == 302 {
+		log.Debugf("Post to %s success!", csvPostUrl)
+	} else {
+		if err != nil {
+			err = fmt.Errorf("Post to %s failed, http status codes was %s\n%s", csvPostUrl, resp.Status, b)
+		}
 		return
 	}
 	defer resp.Body.Close()
 	//c.printCookies()
 	b, _ = ioutil.ReadAll(resp.Body)
-
-	if resp.StatusCode == 200 || resp.StatusCode == 302 {
-		log.Debugf("Post to %s success!", csvPostUrl)
-	} else {
-		err = fmt.Errorf("Post to %s failed, http status codes was %s\n%s", csvPostUrl, resp.Status, b)
-		return
-	}
 
 	log.Debugf("Getting from %s", csvUrl)
 	resp, err = client.Get(csvUrl)
@@ -403,9 +432,9 @@ func nowDate() string {
 	return time.Now().Format(keyDateFormat)
 }
 
-
 func (c *sunnyDataProvider) printCookies() {
 	log.Trace("Cookies in store is now:")
+
 	for _, cookie := range c.client.Jar.Cookies(nil) {
 		log.Tracef("    %s: %s", cookie.Name, cookie.Value)
 	}
