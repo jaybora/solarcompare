@@ -2,7 +2,7 @@
 <html>
 <head>
 <title>Solar Compare</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--<meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
 <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.1/themes/base/jquery-ui.css" />
 <link rel="stylesheet" href="css/style.css" />
 <script type='text/javascript' src="scripts/formatdate.js"></script>
@@ -102,6 +102,11 @@
 		initializeMap("jannikmap", new google.maps.LatLng(54.82534,11.259825));
 		initializeMap("janbangmap", new google.maps.LatLng(54.765939,11.853046));
 
+  	$.getJSON("../auth/user", function(data) {
+  		console.log('Got reply on user info as ' + data.Email)
+  		$('#loginlink').html('Velkommen ' + data.Email + '  <a href="../auth/logout">Log ud</a>')
+
+  	})
   }
   
   function updateGrid(plantname, data) {
@@ -126,31 +131,33 @@
   	console.log('Rerequesting values...')
 		
 		_gaq.push(['_trackEvent', 'Plants', 'Load Values', 'All plants']);
-  	$.getJSON( "../plant/jbr", function(data) {
+  	$.getJSON( "../plant/jbr/pvdata", function(data) {
   		console.log('Got reply, updating values on page...')
   		updateGrid('jbr', data);
   	} )
-  	$.getJSON( "../plant/peterlarsen", function(data) {
+  	$.getJSON( "../plant/peterlarsen/pvdata", function(data) {
   		console.log('Got reply, updating values on page...')
   		updateGrid('pl', data);
   	} )
-  	$.getJSON( "../plant/kaup", function(data) {
+  	$.getJSON( "../plant/kaup/pvdata", function(data) {
   		console.log('Got reply, updating values on page...')
   		updateGrid('kaup', data);
   	} )
-  	$.getJSON( "../plant/gldv33", function(data) {
+  	$.getJSON( "../plant/gldv33/pvdata", function(data) {
   		console.log('Got reply, updating values on page...')
   		updateGrid('gldv33', data);
   	} )
-  	$.getJSON( "../plant/janbang", function(data) {
+  	$.getJSON( "../plant/janbang/pvdata", function(data) {
   		console.log('Got reply, updating values on page...')
   		updateGrid('janbang', data);
   	} )
-  	$.getJSON( "../plant/lysningen", function(data) {
+  	$.getJSON( "../plant/lysningen/pvdata", function(data) {
   		console.log('Got reply, updating values on page...')
   		updateGrid('jannik', data);
 
   	} )
+
+
   }
 
   </script>
@@ -210,7 +217,14 @@ p.update-text {
 		<header class="wrapper">
 			<h1 id="title">Solar Compare</h1>
 			<nav class="user">
-				<a href="/login">Log p&aring;</a>
+				<span id="loginlink">
+					<a href="/auth/login">Log p&aring;</a>
+				</span>
+			</nav>
+			<nav class="user">
+				<span id="myplant">
+					<a href="myplant">Mit anl&aelig;g</a>
+				</span>
 			</nav>
 		</header>
 	</div>
@@ -355,8 +369,5 @@ p.update-text {
 			</tr>			
 		</tbody>
 	</table>
-
-
-
 </body>
 </html>

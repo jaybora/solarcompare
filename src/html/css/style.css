@@ -75,7 +75,7 @@ button {  width: auto; overflow: visible; }
 
 body, select, input, textarea {  color: #444; }
 h1, h2, h3, h4, h5, h6 { font-weight: bold; }
-a, a:active, a:visited { color: #0C707E; }
+a, a:active, a:visited { color: #FFFFFF; }
 a:hover { color: #06464C; }
 nav a:hover { color: #FFFF00; }
 
@@ -89,6 +89,7 @@ nav a:hover { color: #FFFF00; }
 
 body{
 	font-family: Helvetica, Helvetica Neue, Arial, sans-serif;
+	width: 1024px;
 }
 
 .wrapper{
