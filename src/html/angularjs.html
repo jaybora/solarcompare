@@ -1,6 +1,7 @@
 <!doctype html>
 <html ng-app="solarcompare">
 <head>
+	<meta charset="UTF-8">
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
 	<script src="http://code.angularjs.org/1.0.7/angular-resource.min.js"></script>
 	<script src="/scripts/restresources.js"></script>
@@ -14,8 +15,17 @@
 			<button  ng-click="fetch()">Hit</button>
 		</form>
 		<hr/>
-		<form 
+		<form name="plantdataform" ng-controller="PlantController">
+			<label for="plantkey">Anlægs identikation<br/>
+			<input type="text" name="plantkey" id="plantkey" size="30" maxlength="30" ng-model="PlantKey" hint="Unikt navn for anlæg" required>
+			<span class="error" ng-show="plantdataform.input.$error.required">Påkrævet</span><br/><br/>
 
+			<label for="plantkey">Anlægs identikation<br/>
+			<input type="text" name="plantkey" id="plantkey" size="30" maxlength="30" ng-model="PlantKey" hint="Unikt navn for anlæg" required>
+			<span class="error" ng-show="plantdataform.input.$error.required">Påkrævet</span><br/>
+
+			<button ng-click="save()">Gem</button>
+		</form>
 
 		<p>Name is {{plantRslt.Name}}</p>
 

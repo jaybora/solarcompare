@@ -20,15 +20,15 @@ type Panels struct {
 
 type Plant struct {
 	PlantKey     string `goon:"id"`
-	User         string 
+	User         string `json:"-"`
 	Name         string
 	Latitide     string
 	Longitude    string
 	Picture      []byte
 	Panels       Panels
 	Inverter     Inverter
-	InitiateData dataproviders.InitiateData 
-	//PvData       dataproviders.PvData       `json:"-"` //Live data 
+	InitiateData dataproviders.InitiateData
+	//PvData       dataproviders.PvData       `json:"-"` //Live data
 	// The dataproviders implementation
 	DataProvider int
 }
