@@ -1,0 +1,136 @@
+<h4 style="padding-bottom: 1em;">
+	Rediger oplysning for anlæg {{plant.PlantKey}} - {{plant.Name}}
+</h4>
+<form name="plantdata">
+	<table class="plantdata">
+		<tr>
+			<td class="plantdata">
+				<label for="plantname">Navn</label>
+			</td>
+			<td class="plantdata">
+				<input id="plantname" size="20" maxlength="80" ng-model="plant.Name" required/>
+			</td>
+		</tr>		
+		<tr>
+			<td class="plantdata">
+				<label for="map">Kort</label>
+			</td>
+			<td class="plantdata">
+				<google-map center="map.center" draggable="true" zoom="map.zoom" mark-click="true" refresh="map.refresh" markers="map.markers" longitude="map.longitude" latitude="map.latitude" style="height: 200px; width: 200px; display:block;"></google-map>
+			</td>
+			<td class="plantdata">
+				<button ng-click="findMe()">Hit mig</button>
+			</td>
+		</tr>
+<!--
+		<tr>
+			<td class="plantdata">
+				<label for="zoom">Zoom</label>
+			</td>
+			<td class="plantdata">
+				<input type="number" id="zoom" size="20" maxlength="80" ng-model="map.zoom"/>
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="latitude">Latitude mark</label>
+			</td>
+			<td class="plantdata">
+				<input id="latitude" size="20" maxlength="80" ng-model="map.latitude"/>
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="longitude">Longitude mark</label>
+			</td>
+			<td class="plantdata">
+				<input id="longitude" size="20" maxlength="80" ng-model="map.longitude"/>
+			</td>
+		</tr>		<tr>
+			<td class="plantdata">
+				<label for="latitude">Latitude</label>
+			</td>
+			<td class="plantdata">
+				<input id="latitude" size="20" maxlength="80" ng-model="map.center.latitude"/>
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="longitude">Longitude</label>
+			</td>
+			<td class="plantdata">
+				<input id="longitude" size="20" maxlength="80" ng-model="map.center.longitude"/>
+			</td>
+		</tr> -->
+		<tr>
+			<td class="plantdata">
+				<label for="picture">Billede</label>
+			</td>
+			<td class="plantdata">
+				<input id="picture" type="file" size="20" maxlength="40" ng-model="plant.Picture"/>
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="panelvendor">Panel producent</label>
+			</td>
+			<td class="plantdata">
+				<input id="panelvendor" size="20" maxlength="40" ng-model="plant.Panels.Vendor"/>
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="panelmodel">Panel model</label>
+			</td>
+			<td class="plantdata">
+				<input id="panelmodel" size="20" maxlength="40" ng-model="plant.Panels.Model"/>
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="panelcapacity">Paneler samlet effekt</label>
+			</td>
+			<td class="plantdata">
+				<input type="number" id="panelcapacity" size="7" maxlength="7" min="0" max="9999999" ng-model="plant.Panels.Capacity"/> watt peak
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="panelpieces">Antal paneler</label>
+			</td>
+			<td class="plantdata">
+				<input type="number" min="0" max="9999" id="panelpieces" size="2" maxlength="4" ng-model="plant.Panels.Pieces"/> stk
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="invertervendor">Inverter producent</label>
+			</td>
+			<td class="plantdata">
+				<input id="invertervendor" size="20" maxlength="40" ng-model="plant.Inverter.Vendor"/>
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="invertermodel">Inverter model</label>
+			</td>
+			<td class="plantdata">
+				<input id="invertermodel" size="20" maxlength="40" ng-model="plant.Inverter.Model"/>
+			</td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="invertercapacity">Inverter effekt</label>
+			</td>
+			<td class="plantdata">
+				<input type="number" id="invertercapacity" size="7" maxlength="7" min="0" max="9999999" ng-model="plant.Inverter.Capacity"/> watt peak
+			</td>
+		</tr>
+
+	</table>
+
+	<button ng-click="update()">Gem</button>
+	<button ng-click="cancel()">Annuller</button>
+
+</form>
+

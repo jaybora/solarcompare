@@ -90,7 +90,7 @@ nav a:hover { color: #FFFF00; }
     body{
     	font-family: Helvetica, Helvetica Neue, Arial, sans-serif;
     	width: auto;
-    	font-size: 11pt;
+    	font-size: 10pt;
     }
 
 /*
@@ -104,6 +104,14 @@ nav a:hover { color: #FFFF00; }
     }
 
 /*    td.headcol:before {content: 'Row ';} */
+
+    td.plantdata {
+        padding: 4px;
+    }
+
+    table.myplants {
+        width: 100%;
+    }
 
     table.comp {
     }
@@ -133,10 +141,20 @@ nav a:hover { color: #FFFF00; }
     	top:51px;
         left:4px;
         right:4px;
+        bottom: 4px;
         overflow-x:scroll;  
         overflow-y:scroll;
         padding-bottom:1px;
     }
+
+    .gridStyle {
+    border: 1px solid rgb(212,212,212);
+    position: absolute;
+    right:4px;
+    left:4px; 
+    top:50px;
+    bottom:4px;
+}
 
 
     .today-label {

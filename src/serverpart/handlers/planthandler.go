@@ -17,15 +17,15 @@ import (
 )
 
 func PlantHandler(w http.ResponseWriter, r *http.Request) {
-	plantkey := web.PlantKey(r.URL.String(), appengine.IsDevAppServer())
-	if plantkey == "" {
-		handleListPlants(w, r)
-		return
-	}
-
 	// If pvdata is specified then go to that handler
 	if strings.Contains(r.URL.String(), "pvdata") {
 		Pvdatahandler(w, r)
+		return
+	}
+
+	plantkey := web.PlantKey(r.URL.String(), appengine.IsDevAppServer())
+	if plantkey == "" {
+		handleListPlants(w, r)
 		return
 	}
 
@@ -41,6 +41,39 @@ func PlantHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleGetMultiplePlants(w http.ResponseWriter, r *http.Request, keys *[]string) {
+	c := appengine.NewContext(r)
+
+	// Manually buliding json array, outputting one element at a time
+	index := 0
+	for index, plantkey := range *keys {
+		p, err := Plant(r, &plantkey)
+		if index == 0 {
+			w.Header().Add("Content-type", "application/json")
+			w.Write([]byte("["))
+		} else {
+			w.Write([]byte(","))
+		}
+		if err != nil {
+			c.Infof("Could not get plant for %s from datastore due to %s", plantkey, err.Error())
+			w.Write([]byte("{}"))
+		} else {
+			json, err := p.ToJson()
+			if err != nil {
+				c.Infof("Error in marshalling to json, err %s", err.Error())
+				w.Write([]byte("{}"))
+			}
+			w.Write(json)
+		}
+
+		index++
+
+	}
+	if index > 0 {
+		w.Write([]byte("]"))
+	}
+}
+
 /*
  List all plants from the logged in user
 */
@@ -49,7 +82,15 @@ func handleListPlants(w http.ResponseWriter, r *http.Request) {
 	g := goon.NewGoon(r)
 	u := user.Current(c)
 
+	// Get multiple
+	plantkeys := strings.Split(r.URL.Query().Get("plants"), ",")
+	if len(plantkeys) > 1 {
+		handleGetMultiplePlants(w, r, &plantkeys)
+		return
+	}
+
 	var q *datastore.Query
+	// Request for the users plants only
 	if r.URL.Query().Get("myplants") == "true" {
 		if u == nil {
 			http.Error(w, "Please login", http.StatusForbidden)
@@ -67,6 +108,7 @@ func handleListPlants(w http.ResponseWriter, r *http.Request) {
 			Limit(100)
 	}
 
+	// Manually buliding json array, outputting one element at a time
 	index := 0
 	for i := g.Run(q); ; {
 		p := plantdata.Plant{}
@@ -81,6 +123,7 @@ func handleListPlants(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if index == 0 {
+			w.Header().Add("Content-type", "application/json")
 			w.Write([]byte("["))
 		} else {
 			w.Write([]byte(","))
@@ -126,6 +169,7 @@ func handleGetPlant(w http.ResponseWriter, r *http.Request, plantkey *string) {
 	if err != nil {
 		c.Infof("Error in marshalling to json for plantkey %s, err %s", *plantkey, err.Error())
 	}
+	w.Header().Add("Content-type", "application/json")
 	w.Write(json)
 }
 
@@ -164,7 +208,8 @@ func handlePutPlant(w http.ResponseWriter, r *http.Request, plantkey *string) {
 			http.StatusInternalServerError)
 		return
 	}
-	w.Write([]byte("Ok"))
+	handleGetPlant(w, r, plantkey)
+
 }
 func handleDeletePlant(w http.ResponseWriter, r *http.Request, plantkey *string) {
 	c := appengine.NewContext(r)

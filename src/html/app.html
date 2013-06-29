@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="da" ng-app="solarcompare">
+<head>
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="css/style.css" />
+	<link rel="stylesheet" href="css/ng-grid.css" />
+	<script src="http://code.jquery.com/jquery-1.8.2.min.js"></script> 
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+	<script type="text/javascript" src="scripts/ng-grid-2.0.6.min.js"></script>
+	<script type="text/javascript"
+	src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDrkLN7iOtMkupENK_5YFbfaCGqVmM1KMw&sensor=false">
+	</script>
+	<script type="text/javascript" src="scripts/restangular.min.js"></script>
+	<script type="text/javascript" src="scripts/underscore.min.js"></script>
+	<script type="text/javascript" src="scripts/app.js"></script>
+	<script type="text/javascript" src="scripts/controllers.js"></script>	
+	<script type="text/javascript" src="scripts/angular-google-maps.js"></script>
+	<script type="text/javascript" src="scripts/services.js"></script>
+</head>
+<body>
+	<div id="header-container">
+		<header class="wrapper">
+			<h1 id="title">Solar Compare</h1>
+			<nav class="loginlink" ng-controller="UserCtrl">
+				<a href="#/">Forside</a>
+				<a href="#/myplants" ng-show="user.Email">Mine anl&aelig;g</a>
+				<a href="/auth/login" ng-hide="user.Email">Log på</a> 
+				<span ng-show="user.Email">Velkommen {{user.Email}}</span>
+				<a href="/auth/logout" ng-show="user.Email">Log ud</a>
+			</nav>
+		</header>
+	</div>
+	<div class="compare-area" ng-view></div>
+</body>
+</html>

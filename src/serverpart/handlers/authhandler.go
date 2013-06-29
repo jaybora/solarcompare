@@ -35,7 +35,7 @@ func AuthRedirectLogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Location", url)
+	w.Header().Set("Location", url)	
 	w.WriteHeader(http.StatusMovedPermanently)
 
 }
