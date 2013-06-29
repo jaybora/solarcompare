@@ -22,7 +22,7 @@ type Plant struct {
 	PlantKey     string `goon:"id"`
 	User         string `json:"-"`
 	Name         string
-	Latitide     string
+	Latitude     string
 	Longitude    string
 	Picture      []byte
 	Panels       Panels
