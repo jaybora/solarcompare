@@ -23,6 +23,7 @@ type Plant struct {
 	User         string `json:"-"`
 	Name         string
 	Latitude     string
+	Latitide     string
 	Longitude    string
 	Picture      []byte
 	Panels       Panels

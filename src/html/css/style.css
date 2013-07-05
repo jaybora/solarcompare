@@ -116,21 +116,27 @@ nav a:hover { color: #FFFF00; }
     table.comp {
     }
 
-    td.comp {
-        margin:0;
-        white-space:nowrap;
-    }
 
-    table.comp, td.comp, td.headcol {
-    	padding: 10px;
-    	border-bottom: 1px solid gray;
+    table.comp, td.comp, td.headcol, th.headcol {
+        padding: 10px;
+        padding-left: 10px;
+        padding-right: 10px;
+        border-bottom: 1px solid gray;
+        border-right: 1px solid gray;
     }
 
     table.comp, th {
-    	padding: 5px;
-    	border-bottom: 2px solid black;
+        padding: 5px;
+        border-bottom: 1px solid black;
     }
 
+    td.comp {
+        white-space:nowrap;
+        width: 120px;
+        text-align: center;
+        border-right: 1px solid gray;
+        
+    }
 
     p.update-text {
     	font-size: 8pt;
@@ -156,6 +162,40 @@ nav a:hover { color: #FFFF00; }
     bottom:4px;
 }
 
+.custom-enter,
+.custom-leave,
+.custom-move {
+  -webkit-transition: 1s linear all;
+  -moz-transition: 1s linear all;
+  -o-transition: 1s linear all;
+  transition: 1s linear all;
+  position:relative;
+}
+
+.custom-enter {
+  left:-10px;
+  opacity:0;
+}
+.custom-enter.custom-enter-active {
+  left:0;
+  opacity:1;
+}
+
+.custom-leave {
+  left:0;
+  opacity:1;
+}
+.custom-leave.custom-leave-active {
+  left:-10px;
+  opacity:0;
+}
+
+.custom-move {
+  opacity:0.5;
+}
+.custom-move.custom-move-active {
+  opacity:1;
+}
 
     .today-label {
     	float: right;

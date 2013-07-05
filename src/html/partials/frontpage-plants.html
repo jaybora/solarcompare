@@ -1,4 +1,64 @@
 <div>
-	<h4>Forside</h4>
-	<p>Du har {{NumberOfMyPlants}} anlæg</p>
+	<table class="comp" >
+		<thead>
+			<tr>
+				<th class="headcol">
+				</th>
+				<th ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="headcol">
+					<span>{{plant.Name}}</span>
+
+				</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td class="headcol">
+					Seneste opdatering kl
+				</td>
+				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="comp" style="text-align: center">
+					<span>{{plant.pvdata.LatestUpdate | timeFilter}}</span>
+
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Aktuel produktion
+				</td>
+				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true" class="comp">
+					<div google-chart chart="PowerAcChart"/>
+					
+					<span>{{plant.pvdata.PowerAc}} W</span>
+
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Dags produktion
+				</td>
+				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="comp">
+					<span>{{plant.pvdata.EnergyToday}} Wh</span>
+
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Total produktion
+				</td>
+				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="comp">
+					<span>{{plant.pvdata.EnergyTotal}} kWh</span>
+
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Installeret effekt
+				</td>
+				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true  " class="comp">
+					<span>{{plant.Panels.Capacity}} kWp</span>
+
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	
 </div>

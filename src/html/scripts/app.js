@@ -1,4 +1,12 @@
-angular.module('solarcompare', ['ngGrid', 'MyPlantsService', 'google-maps']).
+'use strict';
+
+google.setOnLoadCallback(function () {
+    angular.bootstrap(document.body, ['solarcompare']);
+});
+google.load('visualization', '1', {packages: ['corechart']});
+google.load('visualization', '1', {packages:['gauge']});
+
+angular.module('solarcompare', ['ngGrid', 'MyPlantsService', 'google-maps', 'googlechart.directives']).
   config(['$routeProvider', function($routeProvider) {
   $routeProvider.
       when('/', {templateUrl: '/html/partials/frontpage-plants.html',   

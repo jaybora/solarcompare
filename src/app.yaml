@@ -1,5 +1,5 @@
 application: solar-compare
-version: 3
+version: 5
 runtime: go
 api_version: go1
 

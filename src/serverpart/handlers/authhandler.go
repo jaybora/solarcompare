@@ -35,7 +35,7 @@ func AuthRedirectLogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Location", url)	
+	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusMovedPermanently)
 
 }
@@ -44,7 +44,7 @@ func AuthRedirectLogoutHandler(w http.ResponseWriter, r *http.Request) {
 func AuthUserHandler(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	u := user.Current(c)
-	b, err := json.Marshal(u)
+	b, err := json.MarshalIndent(u, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -18,9 +18,9 @@ type PlantStatsStore interface {
 }
 
 // Interface for setting and getting pvdata
-type PvStore interface { 
+type PvStore interface {
 	Set(plantkey string, pv *PvData)
-	Get(plantkey string) PvData 
+	Get(plantkey string) PvData
 }
 
 type InitiateData struct {
@@ -47,7 +47,20 @@ const (
 	Kostal      = iota
 )
 
-// RunUpdates on the provider. 
+type DataProviderDescription struct {
+	Dataprovider   uint
+	Name           string
+	RequiredFields []string
+}
+
+var DataProviders = []DataProviderDescription{
+	{FJY, "FJY", []string{}},
+	{SunnyPortal, "SunnyPortal", []string{"UserName", "Password", "PlantNo"}},
+	{Suntrol, "Suntrol", []string{"PlantNo"}},
+	{Danfoss, "Danfoss", []string{"UserName", "Password", "Address"}},
+	{Kostal, "Kostal", []string{"UserName", "Password", "Address"}}}
+
+// RunUpdates on the provider.
 // updateFast, a function that gets called when a fast update is scheduled
 // updateSlow, a function that gets called when a slow update is scheduled
 // fastTime, secs on updateFast should be scheduled
@@ -122,7 +135,7 @@ LOOP:
 		} else {
 			updatePvPeak(pvStore, &initiateData.PlantKey, &pv)
 		}
-		
+
 		if firstRun {
 			err = updateSlow(initiateData, &pv)
 			if err != nil {
@@ -133,17 +146,17 @@ LOOP:
 				updatePvPeak(pvStore, &initiateData.PlantKey, &pv)
 			}
 			firstRun = false
-		} 
-		
+		}
+
 		if errCounter > errClose {
 			break LOOP
 		}
 		//Wait for rerequest
 		log.Debug("Waiting on tickers...")
 		select {
-		case <- fastTickCh:
+		case <-fastTickCh:
 			// Restart terminate ticker
-		case <- slowTickCh:
+		case <-slowTickCh:
 			err := updateSlow(initiateData, &pv)
 			if err != nil {
 				errCounter++
@@ -160,7 +173,6 @@ LOOP:
 
 		case <-terminateCh:
 			break LOOP
-		
 
 		case <-terminateChTick:
 			break LOOP
@@ -184,7 +196,7 @@ func updatePvPeak(pvStore PvStore, plantKey *string, pv *PvData) {
 		pv.PowerAcPeakAll = pv.PowerAc
 		pv.PowerAcPeakAllTime = *pv.LatestUpdate
 	}
-	
+
 	// Reset peak today if lasttime is less than now
 	if pv.PowerAcPeakTodayTime.Before(midnight()) {
 		log.Debugf("Resetting PowerAcPeakToday because we passed midnight, %s is before %s", pv.PowerAcPeakTodayTime, midnight())
@@ -199,4 +211,3 @@ func updatePvPeak(pvStore PvStore, plantKey *string, pv *PvData) {
 
 	pvStore.Set(*plantKey, pv)
 }
-

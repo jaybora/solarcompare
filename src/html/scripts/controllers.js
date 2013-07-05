@@ -1,4 +1,4 @@
-function FrontpagePlantsCtrl($scope, MyPlants, $timeout) {
+function FrontpagePlantsCtrl($scope, Plants, $timeout) {
 	//var plantsResource = $resource('/plant');
 	//$scope.plants = plantsResource.query();
 
@@ -8,17 +8,59 @@ function FrontpagePlantsCtrl($scope, MyPlants, $timeout) {
 		
 	// });
 
+	// var updateFn = function() {
+	// 	$scope.myPlants = MyPlants.then(function(plants) {
+	// 		$scope.NumberOfMyPlants = plants.length;
+	// 	});
+	// 	// MyPlants.plants = myplantsResource.query({}, function() {
+	// 	// 	$scope.NumberOfMyPlants = MyPlants.plants.length;
+	// 		//$timeout(updateFn, 30000);
+	// 	//});
+	// };
+
+	$scope.plants = [];
+	Plants.then(function(plants) {
+		for (var i = 0; i < plants.length; i++) {
+			var plant = plants[i];
+			
+			plant.pvdata = plant.one('pvdata').get();
+			$scope.plants.push(plant);
+			
+		};
+	    $timeout(updateFn, 1000);
+	});
 	var updateFn = function() {
-		$scope.myPlants = MyPlants.then(function(plants) {
-			$scope.NumberOfMyPlants = plants.length;
-		});
-		// MyPlants.plants = myplantsResource.query({}, function() {
-		// 	$scope.NumberOfMyPlants = MyPlants.plants.length;
-			//$timeout(updateFn, 30000);
-		//});
+		for (var i = 0; i < $scope.plants.length; i++) {
+			var plant = $scope.plants[i];
+			// plant.pvdata = plant.one('pvdata').get();
+			plant.one('pvdata').get().then(function(pv) {
+				var plantkey = pv.parentResource.PlantKey;
+				var plant = _.find($scope.plants, function(plant) {
+					return plant.PlantKey === plantkey;
+				});
+
+				console.log("Updating pvdata of " + plant.PlantKey + " to " + pv.PowerAc)
+				plant.pvdata = pv;
+
+				// For gauge chart
+				plant.pvdata.chart = {
+					"type": "AreaChart",
+					"data": [['Watt'], [plant.pvdata.PowerAc]],
+					"options": {
+						width: 130, height: 130,
+						minorTicks: 10,
+						majorTicks: ['0', '1', '2', '3', '4', '5', '6'],
+						max: 6000,
+						animation: {duration: 600, easing: 'inAndOut'}
+					}
+				};
+			});
+		}
+		
+		$timeout(updateFn, 10000);
 	};
 
-	$timeout(updateFn, 0);
+
 
 }
 
