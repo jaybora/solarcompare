@@ -21,6 +21,8 @@
                 }, true); // true is for deep object equality checking
 
                 function draw() {
+                    //console.log("Initialize draw chart");
+                    //console.log("scope.chart is " + Object.keys($scope.chart));
                     if (!draw.triggered && ($scope.chart != undefined)) {
                         draw.triggered = true;
                         $timeout(function () {
@@ -30,9 +32,10 @@
 
                             var chartWrapperArgs = {
                                 chartType: $scope.chart.type,
-                                dataTable: $scope.chart.dataTable,
+                                dataTable: dataTable,
                                 options: $scope.chart.options,
                                 containerId: $elm[0]
+
                             };
 
                             if($scope.chartWrapper==null) {

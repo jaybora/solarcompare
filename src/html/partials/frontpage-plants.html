@@ -22,13 +22,20 @@
 			</tr>
 			<tr>
 				<td class="headcol">
+					Kort
+				</td>
+				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="comp" style="text-align: center">
+					<google-map center="plant.map.center" draggable="true" zoom="plant.map.zoom" mark-click="false" markers="plant.map.markers" style="height: 120px; width: 120px; display:block;"></google-map>
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
 					Aktuel produktion
 				</td>
 				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true" class="comp">
-					<div google-chart chart="PowerAcChart"/>
-					
-					<span>{{plant.pvdata.PowerAc}} W</span>
-
+					<div ng-show="plant.PowerAcGauge">
+						<div google-chart chart="plant.PowerAcGauge"/>
+					</div>
 				</td>
 			</tr>
 			<tr>

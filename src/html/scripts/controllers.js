@@ -23,11 +23,42 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout) {
 		for (var i = 0; i < plants.length; i++) {
 			var plant = plants[i];
 			
-			plant.pvdata = plant.one('pvdata').get();
-			$scope.plants.push(plant);
+//			plant.pvdata = {};
 			
+			
+			// For map
+			plant.map = {};
+			plant.map.center = {
+				latitude: plant.Latitude,
+				longitude: plant.Longitude
+			};
+			plant.map.zoom = 7;
+
+			console.log("Setting map for " + plant.PlantKey);
+			plant.map.markers = [
+				   {latitude: plant.Latitude,
+					longitude: plant.Longitude}];
+			
+
+			// For gauge chart
+			console.log("Setting up gauge for " + plant.PlantKey);
+			plant.PowerAcGauge = {
+				"type": "Gauge",
+				"data": [['Watt'], [0]],
+				"options": {
+					width: 130, height: 130,
+					minorTicks: 10,
+					majorTicks: ['0', '1', '2', '3', '4', '5', '6'],
+					max: 6000,
+					animation: {duration: 1600, easing: 'inAndOut'}
+				}
+			};
+				
+			$scope.plants.push(plant);
+
 		};
-	    $timeout(updateFn, 1000);
+
+	    $timeout(updateFn, 100);
 	});
 	var updateFn = function() {
 		for (var i = 0; i < $scope.plants.length; i++) {
@@ -43,20 +74,21 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout) {
 				plant.pvdata = pv;
 
 				// For gauge chart
-				plant.pvdata.chart = {
-					"type": "AreaChart",
-					"data": [['Watt'], [plant.pvdata.PowerAc]],
-					"options": {
-						width: 130, height: 130,
-						minorTicks: 10,
-						majorTicks: ['0', '1', '2', '3', '4', '5', '6'],
-						max: 6000,
-						animation: {duration: 600, easing: 'inAndOut'}
-					}
-				};
+				plant.PowerAcGauge.data = [['Watt'], [pv.PowerAc]];
+				// plant.PowerAcGauge = {
+				// 	"type": "Gauge",
+				// 	"data": [['Watt'], [pv.PowerAc]],
+				// 	"options": {
+				// 		width: 130, height: 130,
+				// 		minorTicks: 10,
+				// 		majorTicks: ['0', '1', '2', '3', '4', '5', '6'],
+				// 		max: 6000,
+				// 		animation: {duration: 1600, easing: 'inAndOut'}
+				// 	}
+				// };
+
 			});
 		}
-		
 		$timeout(updateFn, 10000);
 	};
 
