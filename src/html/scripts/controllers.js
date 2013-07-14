@@ -1,29 +1,8 @@
 function FrontpagePlantsCtrl($scope, Plants, $timeout) {
-	//var plantsResource = $resource('/plant');
-	//$scope.plants = plantsResource.query();
-
-	//var myplantsResource = $resource('/plant?myplants=true');
-	// MyPlants.plants = myplantsResource.query({}, function() {
-	// 	$scope.NumberOfMyPlants = MyPlants.plants.length;
-		
-	// });
-
-	// var updateFn = function() {
-	// 	$scope.myPlants = MyPlants.then(function(plants) {
-	// 		$scope.NumberOfMyPlants = plants.length;
-	// 	});
-	// 	// MyPlants.plants = myplantsResource.query({}, function() {
-	// 	// 	$scope.NumberOfMyPlants = MyPlants.plants.length;
-	// 		//$timeout(updateFn, 30000);
-	// 	//});
-	// };
-
 	$scope.plants = [];
 	Plants.then(function(plants) {
 		for (var i = 0; i < plants.length; i++) {
 			var plant = plants[i];
-			
-//			plant.pvdata = {};
 			
 			
 			// For map
@@ -75,17 +54,6 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout) {
 
 				// For gauge chart
 				plant.PowerAcGauge.data = [['Watt'], [pv.PowerAc]];
-				// plant.PowerAcGauge = {
-				// 	"type": "Gauge",
-				// 	"data": [['Watt'], [pv.PowerAc]],
-				// 	"options": {
-				// 		width: 130, height: 130,
-				// 		minorTicks: 10,
-				// 		majorTicks: ['0', '1', '2', '3', '4', '5', '6'],
-				// 		max: 6000,
-				// 		animation: {duration: 1600, easing: 'inAndOut'}
-				// 	}
-				// };
 
 			});
 		}
@@ -97,8 +65,6 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout) {
 }
 
 function MyPlantsCtrl($scope, MyPlants) {
-	//var myplantsResource = $resource('/plant?myplants=true');
-	//MyPlants.plants = myplantsResource.query();
 	$scope.plants = MyPlants;
 
 	$scope.gridOptions = {
