@@ -6,10 +6,13 @@ import (
 	"dataproviders"
 	"encoding/json"
 	"fmt"
+	"logger"
 	"net/http"
 	"plantdata"
 	"strings"
 )
+
+var log = logger.NewLogger(logger.DEBUG, "planthandler: ")
 
 type PlantStore interface {
 	Get(plantkey string) *plantdata.Plant
@@ -22,8 +25,10 @@ func PlantHandler(w http.ResponseWriter, r *http.Request,
 	c *controller.Controller,
 	pg PlantStore,
 	pvStore dataproviders.PvStore,
-	devappserver bool) {
-	plantkey := PlantKey(r.URL.String(), devappserver)
+	plantkeyPosInUrl int) {
+	plantkey := PlantKey(r.URL.String(), plantkeyPosInUrl)
+	log.Debugf("Got request method %s on planthandler. URL was %s",
+		r.Method, r.URL.String())
 	if plantkey == "" {
 		listPlants(w, pg)
 		return
@@ -97,7 +102,9 @@ func handleGet(w http.ResponseWriter, r *http.Request,
 	pg PlantStore,
 	pvStore dataproviders.PvStore) {
 	//Lookup plantdata
+	log.Debugf("Getting data for plant %s from plantstore", *plantkey)
 	plantdata := pg.Get(*plantkey)
+	log.Debugf("Got data for plant %s from plantstore", plantdata)
 
 	if plantdata == nil {
 		err := fmt.Errorf("404: Plant %s not found", *plantkey)
@@ -108,8 +115,10 @@ func handleGet(w http.ResponseWriter, r *http.Request,
 	// Go to the controller with the plantdata
 	// The controller will start up a plant service if its not allready live
 	// We get the provider from the controller
+	log.Debugf("Calling provider for plant %s ", *plantkey)
 	err := c.Provider(plantdata)
 	if err != nil {
+		log.Failf("Got error from controller %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -128,15 +137,13 @@ func handleGet(w http.ResponseWriter, r *http.Request,
 
 // List all known plants if no plantkey is given
 func listPlants(w http.ResponseWriter, pg PlantStore) {
+	log.Debug("Got request for list plants")
 	w.Header().Set("Content-Type", "application/json;  charset=utf-8")
 	w.Write(pg.ToJson())
 }
 
-func PlantKey(url string, devappserver bool) string {
-	keypos := 4
-	if !devappserver {
-		keypos += 2
-	}
+func PlantKey(url string, keyposoffset int) string {
+	keypos := 2 + keyposoffset
 	parts := strings.Split(url, "/")
 	if len(parts) > keypos {
 		return strings.Split(parts[keypos], "?")[0]

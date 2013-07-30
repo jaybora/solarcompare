@@ -8,7 +8,7 @@
 				<label for="plantname">Navn</label>
 			</td>
 			<td class="plantdata">
-				<input id="plantname" size="20" maxlength="80" ng-model="plant.Name" required/>
+				<input type="text" id="plantname" size="20" maxlength="80" ng-model="plant.Name" required/>
 			</td>
 		</tr>		
 		<tr>
@@ -19,7 +19,7 @@
 				<google-map center="map.center" draggable="true" zoom="map.zoom" mark-click="true" refresh="map.refresh" markers="map.markers" longitude="map.longitude" latitude="map.latitude" style="height: 200px; width: 200px; display:block;"></google-map>
 			</td>
 			<td class="plantdata">
-				<button ng-click="findMe()">Hit mig</button>
+				<button ng-click="findMe()" class="btn btn-primary">Hit mig</button>
 			</td>
 		</tr>
 <!--
@@ -61,7 +61,7 @@
 			<td class="plantdata">
 				<input id="longitude" size="20" maxlength="80" ng-model="map.center.longitude"/>
 			</td>
-		</tr> -->
+		</tr> 
 		<tr>
 			<td class="plantdata">
 				<label for="picture">Billede</label>
@@ -69,13 +69,13 @@
 			<td class="plantdata">
 				<input id="picture" type="file" size="20" maxlength="40" ng-model="plant.Picture"/>
 			</td>
-		</tr>
+		</tr> -->
 		<tr>
 			<td class="plantdata">
 				<label for="panelvendor">Panel producent</label>
 			</td>
 			<td class="plantdata">
-				<input id="panelvendor" size="20" maxlength="40" ng-model="plant.Panels.Vendor"/>
+				<input type="text" id="panelvendor" size="20" maxlength="40" ng-model="plant.Panels.Vendor"/>
 			</td>
 		</tr>
 		<tr>
@@ -83,7 +83,7 @@
 				<label for="panelmodel">Panel model</label>
 			</td>
 			<td class="plantdata">
-				<input id="panelmodel" size="20" maxlength="40" ng-model="plant.Panels.Model"/>
+				<input type="text" id="panelmodel" size="20" maxlength="40" ng-model="plant.Panels.Model"/>
 			</td>
 		</tr>
 		<tr>
@@ -107,7 +107,7 @@
 				<label for="invertervendor">Inverter producent</label>
 			</td>
 			<td class="plantdata">
-				<input id="invertervendor" size="20" maxlength="40" ng-model="plant.Inverter.Vendor"/>
+				<input type="text" id="invertervendor" size="20" maxlength="40" ng-model="plant.Inverter.Vendor"/>
 			</td>
 		</tr>
 		<tr>
@@ -115,7 +115,7 @@
 				<label for="invertermodel">Inverter model</label>
 			</td>
 			<td class="plantdata">
-				<input id="invertermodel" size="20" maxlength="40" ng-model="plant.Inverter.Model"/>
+				<input type="text" id="invertermodel" size="20" maxlength="40" ng-model="plant.Inverter.Model"/>
 			</td>
 		</tr>
 		<tr>
@@ -126,13 +126,46 @@
 				<input type="number" id="invertercapacity" size="7" maxlength="7" min="0" max="9999999" ng-model="plant.Inverter.Capacity"/> watt peak
 			</td>
 		</tr>
-		<hr/>
+		<tr>
+			<td class="plantdata">
+				<label for="installationdate">Idriftsættelsesdato</label>
+			</td>
+			<td class="plantdata">
+				<datepicker ng-model="installationdate" show-weeks="false" starting-day="1">
+				</datepicker>
+			</td>
+    		<td><em>{{installationdate | date:'fullDate' }}</em></td>
+		</tr>
+		<tr>
+			<td class="plantdata">
+				<label for="installationprice">Pris</label>
+			</td>
+			<td class="plantdata">
+				<input type="number" min="0" max="999999999" id="installationprice" size="7" maxlength="8" ng-model="plant.InstallationData.Price"/> kr.
+				<p>Incl. montering <input type="checkbox" ng-model="plant.InstallationData.PriceIncludeMounting"></p>
+			</td>
+		</tr>
+		
+		<tr>
+			<td class="plantdata">
+				<label for="dataprovider">Dataleverandør</label>
+			</td>
+			<td class="plantdata">
+				<select id="dataprovider" ng-model="plant.DataProvider" ng-options="d.DataProvider as d.Name for d in DataProviders" popover="Vælg den leverandør der passer til din inverter" popover-trigger="mouseenter">
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td/>
+			<td>
+				<button ng-click="update()" class="btn">Gem</button>
+				<button ng-click="cancel()" class="btn">Annuller</button>
+			</td>			
+		</tr>
 		
 
 	</table>
 
-	<button ng-click="update()">Gem</button>
-	<button ng-click="cancel()">Annuller</button>
 
 </form>
 

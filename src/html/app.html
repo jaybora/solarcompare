@@ -2,11 +2,13 @@
 <html lang="da" ng-app="solarcompare">
 <head>
 	<meta charset="UTF-8">
-	<link rel="stylesheet" href="css/style.css" />
 	<link rel="stylesheet" href="css/ng-grid.css" />
+	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="css/style.css" />
 	<script type='text/javascript' src='https://www.google.com/jsapi'></script>
 	<script src="http://code.jquery.com/jquery-1.8.2.min.js"></script> 
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.1.5/angular.min.js"></script>
+	<script type="text/javascript" src="scripts/ui-bootstrap-tpls-0.4.0.min.js"></script>
 	<script type="text/javascript" src="scripts/ng-google-charts.js"></script>
 	<script type="text/javascript" src="scripts/ng-grid-2.0.6.min.js"></script>
 	<script type="text/javascript"
@@ -31,11 +33,11 @@
 
 	</script>
 </head>
-<body>
+<body ng-controller="UserCtrl">
 	<div id="header-container">
 		<header class="wrapper">
 			<h1 id="title">Solar Compare</h1>
-			<nav class="loginlink" ng-controller="UserCtrl">
+			<nav class="loginlink" >
 				<a href="#/">Forside</a>
 				<a href="#/myplants" ng-show="user.Email">Mine anl&aelig;g</a>
 				<a href="/api/v1/auth/login" ng-hide="user.Email">Log på</a> 
@@ -44,6 +46,10 @@
 			</nav>
 		</header>
 	</div>
-	<div class="compare-area" ng-view></div>
+	<div class="compare-area">
+		
+
+		<div ng-view></div>
+	</div>
 </body>
 </html>

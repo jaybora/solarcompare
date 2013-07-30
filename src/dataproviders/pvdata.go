@@ -29,7 +29,7 @@ func (data *PvData) ToJson() (b []byte) {
 
 func ToPvData(b []byte) (pvdata PvData, err error) {
 	err = json.Unmarshal(b, &pvdata)
-	return 
+	return
 }
 
 const KeyDateFormat = "20060102"

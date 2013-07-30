@@ -16,7 +16,12 @@ import (
 )
 
 func Pvdatahandler(w http.ResponseWriter, r *http.Request) {
-	plantkey := web.PlantKey(r.URL.String(), appengine.IsDevAppServer())
+	keypos := 2
+	if !appengine.IsDevAppServer() {
+		keypos += 2
+	}
+
+	plantkey := web.PlantKey(r.URL.String(), keypos)
 	if plantkey == "" {
 		plantkeys := strings.Split(r.URL.Query().Get("plants"), ",")
 		if len(plantkeys) > 1 {
@@ -124,7 +129,7 @@ func checkForRestart(c appengine.Context, jsonPvData []byte) bool {
 	ret := pvdata.LatestUpdate == nil ||
 		pvdata.LatestUpdate.Before(treshold)
 
-	c.Debugf("Ret is %s. Since %s is before %s", ret, pvdata.LatestUpdate, treshold)
+	c.Debugf("CheckForRestart of plant, returning %t. Since %s is before %s", ret, pvdata.LatestUpdate, treshold)
 	return ret
 }
 

@@ -1,10 +1,19 @@
 <div>
+<!--
+	<script async src="http://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+	<ins class="adsbygoogle"
+	     style="display:inline-block;margin-top:0em;width:728px;height:90px"
+	     data-ad-client="ca-pub-2640914462886460"
+	     data-ad-slot="9577351027"></ins>
+	<script>
+	(adsbygoogle = window.adsbygoogle || []).push({});
+	</script>   -->
 	<table class="comp" >
 		<thead>
 			<tr>
 				<th class="headcol">
 				</th>
-				<th ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="headcol">
+				<th ng-repeat="plant in plants" class="headcol">
 					<span>{{plant.Name}}</span>
 
 				</th>
@@ -15,34 +24,34 @@
 				<td class="headcol">
 					Seneste opdatering kl
 				</td>
-				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="comp" style="text-align: center">
+				<td ng-repeat="plant in plants" class="comp" style="text-align: center">
 					<span>{{plant.pvdata.LatestUpdate | timeFilter}}</span>
 
 				</td>
 			</tr>
 			<tr>
 				<td class="headcol">
-					Kort
-				</td>
-				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="comp" style="text-align: center">
-					<google-map center="plant.map.center" draggable="true" zoom="plant.map.zoom" mark-click="false" markers="plant.map.markers" style="height: 120px; width: 120px; display:block;"></google-map>
-				</td>
-			</tr>
-			<tr>
-				<td class="headcol">
 					Aktuel produktion
 				</td>
-				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true" class="comp">
+				<td ng-repeat="plant in plants" class="comp">
 					<div ng-show="plant.PowerAcGauge">
 						<div google-chart chart="plant.PowerAcGauge"/>
 					</div>
+					<a href="#/poweracchart/{{plant.PlantKey}}">
+						<div ng-show="plant.PowerAcAreaChart">
+							<div google-chart chart="plant.PowerAcAreaChart"/>
+						</div>					
+					</a>
 				</td>
 			</tr>
 			<tr>
 				<td class="headcol">
 					Dags produktion
 				</td>
-				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="comp">
+				<td ng-repeat="plant in plants" class="comp">
+					<div ng-show="plant.EnergyTodayAreaChart">
+						<div google-chart chart="plant.EnergyTodayAreaChart"/>
+					</div>					
 					<span>{{plant.pvdata.EnergyToday}} Wh</span>
 
 				</td>
@@ -51,21 +60,73 @@
 				<td class="headcol">
 					Total produktion
 				</td>
-				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true " class="comp">
+				<td ng-repeat="plant in plants" class="comp">
 					<span>{{plant.pvdata.EnergyTotal}} kWh</span>
 
 				</td>
 			</tr>
 			<tr>
 				<td class="headcol">
-					Installeret effekt
+					Kort
 				</td>
-				<td ng-repeat="plant in plants | orderBy:'pvdata.PowerAc':reverse=true  " class="comp">
+				<td ng-repeat="plant in plants" class="comp" style="text-align: center">
+					<google-map center="plant.map.center" draggable="false" zoom="plant.map.zoom" mark-click="false" markers="plant.map.markers" style="height: 120px; width: 120px; display:block;"></google-map>
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Effekt paneler
+				</td>
+				<td ng-repeat="plant in plants" class="comp">
 					<span>{{plant.Panels.Capacity}} kWp</span>
 
 				</td>
 			</tr>
+			<tr>
+				<td class="headcol">
+					Antal paneler
+				</td>
+				<td ng-repeat="plant in plants" class="comp">
+					<span>{{plant.Panels.Pieces}} stk</span>
+
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Paneler producent og model
+				</td>
+				<td ng-repeat="plant in plants" class="comp">
+					<span>{{plant.Panels.Vendor}} {{plant.Panels.Model}}</span>
+
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Effekt inverter
+				</td>
+				<td ng-repeat="plant in plants" class="comp">
+					<span>{{plant.Inverter.Capacity}} kWp</span>
+
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Inverter producent og model
+				</td>
+				<td ng-repeat="plant in plants" class="comp">
+					<span>{{plant.Inverter.Vendor}} {{plant.Inverter.Model}}</span>
+				</td>
+			</tr>
 		</tbody>
 	</table>
-	
+	<!--
+<script async src="http://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<ins class="adsbygoogle"
+     style="display:inline-block;width:120px;height:600px"
+     data-ad-client="ca-pub-2640914462886460"
+     data-ad-slot="9270809825"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>-->
 </div>

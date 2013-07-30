@@ -7,18 +7,16 @@ import (
 	"logger"
 	"net/http"
 	"net/url"
-	"time"
 	"regexp"
 	"strconv"
+	"time"
 )
 
-
 type dataProvider struct {
-	InitiateData   dataproviders.InitiateData
-	latestErr      error
-	client         *http.Client
+	InitiateData dataproviders.InitiateData
+	latestErr    error
+	client       *http.Client
 }
-
 
 var log = logger.NewLogger(logger.DEBUG, "Dataprovider: Danfoss:")
 
@@ -33,18 +31,19 @@ const pacUrl = "cgi-bin/overview.tcl?sid=%s"
 const sidRegEx = "sid=[0-9]+"
 const curPwr1RegEx = "<td id=\"curr_power\" class=\"parValue\" style=\"width:25%;\">[0-9|\\.]+ [kW|W]"
 const numberRegEx = ">[0-9|\\.]+"
-const etodayRegEx = "<td id=\"prod_today\" class=\"parValue\">[0-9|\\.]+ [kW|W]"
-const etotalRegEx = "<td id=\"total_yield\" class=\"parValue\">[0-9|\\.]+"
+const etodayRegEx = "<td id=\"prod_today\" class=\"parValue\">[0-9|\\.]+ [kW|MW]"
+const etotalRegEx = "<td id=\"total_yield\" class=\"parValue\">[0-9|\\.]+ [kW|MW]"
+
 func (d *dataProvider) Name() string {
 	return "N/A"
 }
 
-func NewDataProvider(initiateData dataproviders.InitiateData, 
-                     term dataproviders.TerminateCallback,
-                     client *http.Client,
-                     pvStore dataproviders.PvStore,
-                     statsStore dataproviders.PlantStatsStore,
-                     terminateCh chan int) dataProvider {
+func NewDataProvider(initiateData dataproviders.InitiateData,
+	term dataproviders.TerminateCallback,
+	client *http.Client,
+	pvStore dataproviders.PvStore,
+	statsStore dataproviders.PlantStatsStore,
+	terminateCh chan int) dataProvider {
 	log.Debug("New dataprovider")
 
 	dp := dataProvider{initiateData,
@@ -56,13 +55,13 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 			err := updatePvData(client, initiateData, pv)
 			pv.LatestUpdate = nil
 			return err
-		}, 
+		},
 		func(initiateData *dataproviders.InitiateData, pv *dataproviders.PvData) error {
 			return nil
-		}, 
-		time.Second * 10,
-		time.Minute * 5,
-		time.Minute * 30,
+		},
+		time.Second*10,
+		time.Minute*5,
+		time.Minute*30,
 		terminateCh,
 		term,
 		MAX_ERRORS,
@@ -81,21 +80,27 @@ func updatePvData(client *http.Client, initiateData *dataproviders.InitiateData,
 		forcelogout(client, initiateData)
 		return err
 	}
-	
+
 	b, err := genericdata(sid, client, initiateData)
-	
+
 	err = pac(sid, client, initiateData, pv, &b)
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	err = etoday(sid, client, initiateData, pv, &b)
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	err = etotal(sid, client, initiateData, pv, &b)
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	logout(sid, client, initiateData)
 	return nil
 }
 
-func login(client *http.Client, 
-            initiateData *dataproviders.InitiateData, ) (sid string, err error) {
+func login(client *http.Client,
+	initiateData *dataproviders.InitiateData) (sid string, err error) {
 	//Do login
 	loginurl := fmt.Sprintf(urlTemplate, initiateData.Address, loginUrl)
 	postdata := url.Values{}
@@ -130,13 +135,13 @@ func login(client *http.Client,
 	sid = string(found[4:])
 	log.Debugf("Login success. Sid is %s", sid)
 
-    return  
+	return
 }
 
-func forcelogout(client *http.Client, 
-            initiateData *dataproviders.InitiateData) {
-	
-	//Do logout 
+func forcelogout(client *http.Client,
+	initiateData *dataproviders.InitiateData) {
+
+	//Do logout
 	logouturl := fmt.Sprintf(urlTemplate, initiateData.Address, forceLogoutUrl)
 	log.Debugf("Force logging out from inverter... url is %s", logouturl)
 	resp, err := client.Get(logouturl)
@@ -151,8 +156,8 @@ func forcelogout(client *http.Client,
 	resp.Body.Close()
 }
 
-func genericdata(sid string, client *http.Client, 
-            initiateData *dataproviders.InitiateData) (b []byte, err error) {
+func genericdata(sid string, client *http.Client,
+	initiateData *dataproviders.InitiateData) (b []byte, err error) {
 	//Get data ----------------------------------------------------------------------------
 	pacurl := fmt.Sprintf(urlTemplate, initiateData.Address, fmt.Sprintf(pacUrl, sid))
 	log.Tracef("Getting data from inverter... url is %s", pacurl)
@@ -168,9 +173,9 @@ func genericdata(sid string, client *http.Client,
 	return
 }
 
-func pac(sid string, client *http.Client, 
-            initiateData *dataproviders.InitiateData, pv *dataproviders.PvData, resp *[]byte) error {
-	
+func pac(sid string, client *http.Client,
+	initiateData *dataproviders.InitiateData, pv *dataproviders.PvData, resp *[]byte) error {
+
 	reg, err := regexp.Compile(curPwr1RegEx)
 	if err != nil {
 		log.Fail(err.Error())
@@ -181,8 +186,7 @@ func pac(sid string, client *http.Client,
 		return err
 	}
 	log.Debugf("Found part 1 to be '%s'", foundPart1)
-	
-	
+
 	reg, err = regexp.Compile(numberRegEx)
 	if err != nil {
 		log.Fail(err.Error())
@@ -196,20 +200,20 @@ func pac(sid string, client *http.Client,
 	pac := string(foundPart2[1:])
 	log.Debugf("Current Pac is %s", pac)
 	pacfloat, err := strconv.ParseFloat(pac, 64)
-	
+
 	// Are the value in kW or W?
 	factor := 1.0
 	if string(foundPart1[len(foundPart1)-1:len(foundPart1)]) == "k" {
 		factor = 1000.0
 	}
-	pv.PowerAc = uint16(pacfloat*factor)
-	
+	pv.PowerAc = uint16(pacfloat * factor)
+
 	return nil
 }
 
-func etoday(sid string, client *http.Client, 
-            initiateData *dataproviders.InitiateData, pv *dataproviders.PvData, resp *[]byte) error {
-	
+func etoday(sid string, client *http.Client,
+	initiateData *dataproviders.InitiateData, pv *dataproviders.PvData, resp *[]byte) error {
+
 	reg, err := regexp.Compile(etodayRegEx)
 	if err != nil {
 		log.Fail(err.Error())
@@ -220,7 +224,7 @@ func etoday(sid string, client *http.Client,
 		err := fmt.Errorf("Could not find etoday in response from inverter")
 		return err
 	}
-	
+
 	reg, err = regexp.Compile(numberRegEx)
 	if err != nil {
 		log.Fail(err.Error())
@@ -234,18 +238,18 @@ func etoday(sid string, client *http.Client,
 	etoday := string(foundPart2[1:])
 	log.Debugf("Current etoday is %s", etoday)
 	etodayfloat, err := strconv.ParseFloat(etoday, 64)
-	
+
 	// Are the value in kW or W?
 	factor := 1.0
 	if string(foundPart1[len(foundPart1)-1:len(foundPart1)]) == "k" {
 		factor = 1000.0
 	}
-	pv.EnergyToday = uint16(etodayfloat*factor)
+	pv.EnergyToday = uint16(etodayfloat * factor)
 	return nil
 }
-func etotal(sid string, client *http.Client, 
-            initiateData *dataproviders.InitiateData, pv *dataproviders.PvData, resp *[]byte) error {
-	
+func etotal(sid string, client *http.Client,
+	initiateData *dataproviders.InitiateData, pv *dataproviders.PvData, resp *[]byte) error {
+
 	reg, err := regexp.Compile(etotalRegEx)
 	if err != nil {
 		log.Fail(err.Error())
@@ -256,7 +260,7 @@ func etotal(sid string, client *http.Client,
 		err := fmt.Errorf("Could not find etotal in response from inverter")
 		return err
 	}
-	
+
 	reg, err = regexp.Compile(numberRegEx)
 	if err != nil {
 		log.Fail(err.Error())
@@ -270,13 +274,18 @@ func etotal(sid string, client *http.Client,
 	etotal := string(foundPart2[1:])
 	log.Debugf("Current etotal is %s", etotal)
 	etotalfloat, err := strconv.ParseFloat(etotal, 64)
-	
-	pv.EnergyTotal = float32(etotalfloat)
+
+	// Are the value in kW or W?
+	factor := 1.0
+	if string(foundPart1[len(foundPart1)-1:len(foundPart1)]) == "M" {
+		factor = 1000.0
+	}
+	pv.EnergyTotal = float32(etotalfloat * factor)
 	return nil
 }
 
 func logout(sid string, client *http.Client, initiateData *dataproviders.InitiateData) {
-	//Do logout 
+	//Do logout
 	logouturl := fmt.Sprintf(urlTemplate, initiateData.Address, fmt.Sprintf(logoutUrl, sid))
 	log.Tracef("Logging out from inverter... url is %s", logouturl)
 	resp, err := client.Get(logouturl)

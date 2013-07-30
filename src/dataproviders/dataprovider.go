@@ -48,7 +48,7 @@ const (
 )
 
 type DataProviderDescription struct {
-	Dataprovider   uint
+	DataProvider   uint
 	Name           string
 	RequiredFields []string
 }

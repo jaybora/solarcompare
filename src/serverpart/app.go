@@ -19,8 +19,6 @@ func init() {
 	http.HandleFunc("/api/v1/auth/user", handlers.AuthUserHandler)
 	http.HandleFunc("/api/v1/dataprovider", handlers.DataProviderHandler)
 	http.HandleFunc("/api/v1/dataprovider/", handlers.DataProviderHandler)
-
-	//	http.HandleFunc("/plant/pvdata", pvdatahandler)
-	//	http.HandleFunc("/dpunit", dpunithandler)
-
+	http.HandleFunc("/api/v1/logpvdata", handlers.LogPvDataHandler)
+	http.HandleFunc("/api/v1/logpvdata/", handlers.LogPvDataHandler)
 }

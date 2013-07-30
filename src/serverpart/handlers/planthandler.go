@@ -18,12 +18,20 @@ import (
 
 func PlantHandler(w http.ResponseWriter, r *http.Request) {
 	// If pvdata is specified then go to that handler
-	if strings.Contains(r.URL.String(), "pvdata") {
+	if strings.Contains(r.URL.String(), "/pvdata") {
 		Pvdatahandler(w, r)
 		return
 	}
+	if strings.Contains(r.URL.String(), "/logpvdata") {
+		LogPvDataHandler(w, r)
+		return
+	}
+	keypos := 2
+	if !appengine.IsDevAppServer() {
+		keypos += 2
+	}
 
-	plantkey := web.PlantKey(r.URL.String(), appengine.IsDevAppServer())
+	plantkey := web.PlantKey(r.URL.String(), keypos)
 	if plantkey == "" {
 		handleListPlants(w, r)
 		return
@@ -45,8 +53,10 @@ func handleGetMultiplePlants(w http.ResponseWriter, r *http.Request, keys *[]str
 	c := appengine.NewContext(r)
 
 	// Manually buliding json array, outputting one element at a time
-	index := 0
+	any := false
 	for index, plantkey := range *keys {
+		any = true
+		c.Debugf("Getting plant for key %s", plantkey)
 		p, err := Plant(r, &plantkey)
 		if index == 0 {
 			w.Header().Add("Content-type", "application/json")
@@ -65,11 +75,8 @@ func handleGetMultiplePlants(w http.ResponseWriter, r *http.Request, keys *[]str
 			}
 			w.Write(json)
 		}
-
-		index++
-
 	}
-	if index > 0 {
+	if any {
 		w.Write([]byte("]"))
 	}
 }
@@ -84,7 +91,8 @@ func handleListPlants(w http.ResponseWriter, r *http.Request) {
 
 	// Get multiple
 	plantkeys := strings.Split(r.URL.Query().Get("plants"), ",")
-	if len(plantkeys) > 1 {
+	c.Debugf("Getting plants for given PlantKeys %s, antal %s", plantkeys, len(plantkeys))
+	if r.URL.Query().Get("plants") != "" {
 		handleGetMultiplePlants(w, r, &plantkeys)
 		return
 	}
@@ -117,10 +125,15 @@ func handleListPlants(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if err != nil {
-			c.Infof("Could not list myplants for user %s from datastore due to %s", u.String(), err.Error())
-			http.Error(w, fmt.Sprintf(err.Error()),
-				http.StatusInternalServerError)
-			return
+			if _, ok := err.(*datastore.ErrFieldMismatch); ok {
+				//Ignore that error
+				c.Debugf("Ignoring %s on load for myplants", err.Error())
+			} else {
+				c.Infof("Could not list myplants for user %s from datastore due to %s", u.String(), err.Error())
+				http.Error(w, fmt.Sprintf(err.Error()),
+					http.StatusInternalServerError)
+				return
+			}
 		}
 		if index == 0 {
 			w.Header().Add("Content-type", "application/json")
@@ -160,10 +173,16 @@ func handleGetPlant(w http.ResponseWriter, r *http.Request, plantkey *string) {
 	ps, err := Plant(r, plantkey)
 
 	if err != nil {
-		c.Infof("Could not get plant for %s from datastore due to %s", *plantkey, err.Error())
-		http.Error(w, fmt.Sprintf("Plant not found"),
-			http.StatusNotFound)
-		return
+		if err == datastore.ErrNoSuchEntity {
+			c.Infof("Could not get plant for %s from datastore due to %s", *plantkey, err.Error())
+			http.Error(w, fmt.Sprintf("Plant not found"),
+				http.StatusNotFound)
+			return
+		} else {
+			c.Infof("Errer %s when getting plant %s from datastore. That was ignored",
+				err.Error(), *plantkey)
+		}
+
 	}
 	json, err := ps.ToJson()
 	if err != nil {

@@ -1,0 +1,4 @@
+cron:
+- description: PvData log for every 10 minutes
+  url: /api/v1/logpvdata?logtype=daily
+  schedule: every 10 minutes from 02:00 to 22:00

@@ -3,6 +3,7 @@ package plantdata
 import (
 	"dataproviders"
 	"encoding/json"
+	"time"
 )
 
 type Inverter struct {
@@ -18,17 +19,24 @@ type Panels struct {
 	Pieces   int16
 }
 
+type InstallationData struct {
+	StartDate            time.Time
+	Price                float32
+	PriceIncludeMounting bool
+}
+
 type Plant struct {
-	PlantKey     string `goon:"id"`
-	User         string `json:"-"`
-	Name         string
-	Latitude     string
-	Latitide     string
-	Longitude    string
-	Picture      []byte
-	Panels       Panels
-	Inverter     Inverter
-	InitiateData dataproviders.InitiateData
+	PlantKey         string `goon:"id"`
+	User             string `json:"-"`
+	Name             string
+	Latitude         string
+	Latitide         string
+	Longitude        string
+	Picture          []byte
+	Panels           Panels
+	Inverter         Inverter
+	InitiateData     dataproviders.InitiateData
+	InstallationData InstallationData
 	//PvData       dataproviders.PvData       `json:"-"` //Live data
 	// The dataproviders implementation
 	DataProvider int

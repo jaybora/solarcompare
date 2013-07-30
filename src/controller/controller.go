@@ -10,53 +10,56 @@ package controller
 import (
 	"dataproviders"
 	"dataproviders/dispatcher"
+	"logger"
 	"plantdata"
 	"sync"
-	"logger"
 )
 
-var log = logger.NewLogger(logger.TRACE, "Controller: ")
+var log = logger.NewLogger(logger.DEBUG, "Controller: ")
 
 // Locker for sync'ing the live map
 var lock = sync.RWMutex{}
 
 // The map where the live dataproviders are kept
 type Controller struct {
-	live map[string]chan int
-	newClient dispatcher.NewClient
-	pvStore dataproviders.PvStore
-	statsStore dataproviders.PlantStatsStore
+	live              map[string]chan int
+	newClient         dispatcher.NewClient
+	pvStore           dataproviders.PvStore
+	statsStore        dataproviders.PlantStatsStore
 	terminateCallback func(plantKey *string)
 }
 
 // Create a new controller
 // Only one for entire app
-func NewController(newClient dispatcher.NewClient, 
-                   pvStore dataproviders.PvStore,
-                   statsStore dataproviders.PlantStatsStore,
-                   terminateCallback func(plantKey *string)) Controller {
-	c := Controller{map[string]chan int{}, 
-	                newClient, 
-	                pvStore,
-	                statsStore,
-	                terminateCallback}
+func NewController(newClient dispatcher.NewClient,
+	pvStore dataproviders.PvStore,
+	statsStore dataproviders.PlantStatsStore,
+	terminateCallback func(plantKey *string)) Controller {
+	c := Controller{map[string]chan int{},
+		newClient,
+		pvStore,
+		statsStore,
+		terminateCallback}
 	//go printStatus(&c)
+	log.Debug("New controller started")
 	return c
 }
 
 // Get the channel for the live provider of the given plantkey
-// If the plant is not live, the controller will start a 
+// If the plant is not live, the controller will start a
 // new dataprovider
 func (c *Controller) Provider(plantdata *plantdata.Plant) (err error) {
+	log.Debugf("Finding provider for plantkey %s", plantdata.PlantKey)
 	lock.RLock()
 	_, ok := c.live[plantdata.PlantKey]
 	lock.RUnlock()
 	if ok {
+		log.Debugf("Provider for plant %s was allready started", plantdata.PlantKey)
 		return
 	} else {
 		// No live, startup a new provider
 		// Lock again to prevent that multiple providers would be started
-		lock.Lock();
+		lock.Lock()
 		// Look again if someone else has started the provider
 		_, ok = c.live[plantdata.PlantKey]
 		if ok {
@@ -84,7 +87,7 @@ func (c *Controller) Terminate(plantdata *plantdata.Plant) {
 	if ok {
 		// Signal terminate on channel to dataprovider
 		log.Debugf("Request for termination of plant %s", plantdata.PlantKey)
-		terminateCh <- 1;
+		terminateCh <- 1
 	} else {
 		log.Infof("Could not terminate plant %s, as it is not found", plantdata.PlantKey)
 	}
@@ -94,7 +97,7 @@ func (c *Controller) Terminate(plantdata *plantdata.Plant) {
 //func printStatus(c *Controller) {
 //	tick := time.NewTicker(1 * time.Minute)
 //	tickCh := tick.C
-//	
+//
 //	for {
 //		<-tickCh
 //		log.Info("List of online plants:")
@@ -118,14 +121,14 @@ func (c *Controller) Terminate(plantdata *plantdata.Plant) {
 func (c *Controller) startNewProvider(plantdata *plantdata.Plant) error {
 	json, _ := plantdata.ToJson()
 	log.Infof("Starting new dataprovider for plant %s", json)
-	
+
 	terminateCh := make(chan int)
 
 	err := dispatcher.Provider(plantdata.DataProvider,
 		plantdata.InitiateData,
 		func() {
 			c.providerTerminated(plantdata.PlantKey)
-		}, 
+		},
 		terminateCh,
 		c.newClient,
 		c.pvStore,

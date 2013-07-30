@@ -83,6 +83,7 @@ func startWebServer() {
 		func(plantKey *string) {
 			plants.Remove(*plantKey)
 		})
+	log.Debugf("New controller is %s", controller)
 
 	http.HandleFunc("/", defaultHandler)
 	http.HandleFunc("/plant", func(w http.ResponseWriter, r *http.Request) {

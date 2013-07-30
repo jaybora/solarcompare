@@ -1,6 +1,9 @@
-function FrontpagePlantsCtrl($scope, Plants, $timeout) {
+function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams) {
 	$scope.plants = [];
+	console.log("FrontpagePlantsCtrl to show the following plants: " + 
+		$routeParams.plants)
 	Plants.then(function(plants) {
+		console.log("FrontpagePlantsCtrl plants update")
 		for (var i = 0; i < plants.length; i++) {
 			var plant = plants[i];
 			
@@ -14,7 +17,7 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout) {
 			plant.map.zoom = 7;
 
 			console.log("Setting map for " + plant.PlantKey);
-			plant.map.markers = [
+			plant.map.markers = [	
 				   {latitude: plant.Latitude,
 					longitude: plant.Longitude}];
 			
@@ -32,13 +35,48 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout) {
 					animation: {duration: 1600, easing: 'inAndOut'}
 				}
 			};
+
+			// For area powerac daily chart
+			console.log("Setting up area chart powerac daily for " + plant.PlantKey);
+			plant.PowerAcAreaChart = {
+				"type": "AreaChart",
+				"data": [['Kl', 'Watt'], 
+				         ['0:00', 0]
+				         ],
+				"options": {
+					width: 130, height: 60,
+					axisTitlesPosition: 'none',
+					legend: {position: 'none'},
+					vAxis: {maxValue: 6000, minValue: 0, viewWindowMode: 'maximized'},
+					animation: {duration: 1600, easing: 'inAndOut'}
+				}
+			};
+
+			// For area energytoday daily chart
+			console.log("Setting up area chart energytoday daily for " + plant.PlantKey);
+			plant.EnergyTodayAreaChart = {
+				"type": "AreaChart",
+				"data": [['Kl', 'Watt'], 
+				         ['0:00', 0]
+				         ],
+				"options": {
+					width: 130, height: 60,
+					axisTitlesPosition: 'none',
+					legend: {position: 'none'},
+					vAxis: {maxValue: 60000, minValue: 0, viewWindowMode: 'maximized'},
+					animation: {duration: 1600, easing: 'inAndOut'}
+				}
+			};
 				
 			$scope.plants.push(plant);
 
 		};
 
 	    $timeout(updateFn, 100);
+	    $timeout(updateAreaChartFn, 100);
 	});
+
+	// Fast update function for powerac
 	var updateFn = function() {
 		for (var i = 0; i < $scope.plants.length; i++) {
 			var plant = $scope.plants[i];
@@ -61,6 +99,46 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout) {
 	};
 
 
+	// Slow update function for area chart
+	var updateAreaChartFn = function() {
+		for (var i = 0; i < $scope.plants.length; i++) {
+			var plant = $scope.plants[i];
+			// plant.pvdata = plant.one('pvdata').get();
+			plant.one('logpvdata').get().then(function(logpvdata) {
+				var plantkey = logpvdata.parentResource.PlantKey;
+				var plant = _.find($scope.plants, function(plant) {
+					return plant.PlantKey === plantkey;
+				});
+
+				console.log("Updating logpvdata of " + plant.PlantKey)
+				plant.logpvdata = logpvdata;
+
+				// For area powerac chart
+				plant.PowerAcAreaChart.data = 
+				        [['Kl', 'Watt']];
+				for (var i = 0; i < logpvdata.length; i++) {
+					plant.PowerAcAreaChart.data.push(
+						[$filter('timeFilter')(logpvdata[i].PvData.LatestUpdate),
+						logpvdata[i].PvData.PowerAc]);
+					
+				};
+
+				// For area energytoday chart
+				plant.EnergyTodayAreaChart.data = 
+				        [['Kl', 'Watt']];
+				for (var i = 0; i < logpvdata.length; i++) {
+					plant.EnergyTodayAreaChart.data.push(
+						[$filter('timeFilter')(logpvdata[i].PvData.LatestUpdate),
+						logpvdata[i].PvData.EnergyToday]);
+					
+				};
+
+			});
+		}
+		$timeout(updateAreaChartFn, 300000);
+	};
+
+
 
 }
 
@@ -78,9 +156,14 @@ function MyPlantsCtrl($scope, MyPlants) {
 			return false;
 		}
 	};
+
+	$scope.add = function() {
+		console.log("Create new one");
+	}
 }
 
-function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout) {
+function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, DataProviders) {
+	$scope.DataProviders = DataProviders;
 	if ($scope.plant === undefined) {
 		$scope.plant = {Latitude: 0,
 					Longitude: 0};
@@ -110,6 +193,11 @@ function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout) {
 		$scope.map.markers = [
 			   {latitude: $scope.plant.Latitude,
 				longitude: $scope.plant.Longitude}];
+
+		$scope.installationdate = new Date($scope.plant.InstallationData.StartDate)
+		if ($scope.installationdate.getFullYear() < 1000) {
+			$scope.installationdate = new Date();
+		}
 		
 		// In order to make the map draw correctly after user 
 		// reselect same plant, make the center property update 
@@ -154,6 +242,7 @@ function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout) {
 		// Update map data from map object and make it a string
 		$scope.plant.Longitude = $scope.map.longitude + "";
 		$scope.plant.Latitude = $scope.map.latitude + "";
+		$scope.plant.InstallationData.StartDate = $scope.installationdate;
 		$scope.plant.put().then(function() {
 			console.log("Saved OK");
 			$window.location.assign('#/myplants');

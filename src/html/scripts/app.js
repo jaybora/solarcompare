@@ -1,12 +1,12 @@
 'use strict';
 
-google.setOnLoadCallback(function () {
-    angular.bootstrap(document.body, ['solarcompare']);
-});
+// google.setOnLoadCallback(function () {
+//     angular.bootstrap(document.body, ['solarcompare']);
+// });
 google.load('visualization', '1', {packages: ['corechart']});
-google.load('visualization', '1', {packages:['gauge']});
+//google.load('visualization', '1', {packages:['gauge']});
 
-angular.module('solarcompare', ['ngGrid', 'MyPlantsService', 'google-maps', 'googlechart.directives']).
+angular.module('solarcompare', ['ngGrid', 'MyPlantsService', 'google-maps', 'googlechart.directives', 'ui.bootstrap']).
   config(['$routeProvider', function($routeProvider) {
   $routeProvider.
       when('/', {templateUrl: '/html/partials/frontpage-plants.html',   
@@ -14,6 +14,8 @@ angular.module('solarcompare', ['ngGrid', 'MyPlantsService', 'google-maps', 'goo
       when('/myplants', {templateUrl: '/html/partials/myplants.html',   
       		controller: MyPlantsCtrl}).
       when('/myplants/:PlantKey', {templateUrl: '/html/partials/myplant-details.html', 
-      	controller: MyPlantDetailCtrl}).
+        controller: MyPlantDetailCtrl}).
+      //when('/poweracchart/:PlantKey', {templateUrl: '/html/partials/poweracchart.html', 
+      //	controller: PowerAcChartCtrl}).
       otherwise({redirectTo: '/'});
 }]);
