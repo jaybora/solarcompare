@@ -3,15 +3,24 @@ angular.module('MyPlantsService', ['restangular']).
     	RestangularProvider.setBaseUrl('/api/v1');
     }).
 	factory('MyPlants', function(Restangular) {
-		r = Restangular.withConfig(function(RestangularConfigurer) {
-			//Set the id fieldname for restangular
-			RestangularConfigurer.setRestangularFields({
-				id: "PlantKey"
-			});	
-			
+		ret = {};
+		ret.getAll = function() {
+			r = Restangular.withConfig(function(RestangularConfigurer) {
+				//Set the id fieldname for restangular
+				RestangularConfigurer.setRestangularFields({
+					id: "PlantKey"
+				});	
+				
 
-		});
-		return r.all('plant').customGETLIST('?myplants=true');
+			});
+			console.log("Get all myplants");
+			return r.all('plant').customGETLIST('?myplants=true');
+		}
+		ret.add = function(PlantKey) {
+			console.log("Adding new restangular plant with plantkey: " + PlantKey);
+			return Restangular.one("plant", PlantKey);
+		}
+		return ret;
 	}).
 	factory('Plants', function(Restangular, $routeParams) {
 		r = Restangular.withConfig(function(RestangularConfigurer) {

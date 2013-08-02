@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"plantdata"
 	"strings"
+	"time"
 	"web"
 )
 
@@ -249,10 +250,12 @@ func handleDeletePlant(w http.ResponseWriter, r *http.Request, plantkey *string)
 	}
 
 	if err := g.Delete(g.Key(&plantdata.Plant{PlantKey: *plantkey})); err != nil {
-		c.Errorf("Could not write delete plant %s: %s", *plantkey, err.Error())
+		c.Errorf("Could not delete plant %s: %s", *plantkey, err.Error())
 		http.Error(w, fmt.Sprintf("Plant could not be deleted"),
 			http.StatusInternalServerError)
 		return
 	}
+	// Sometimes the plant is not deleted right away
+	time.Sleep(1 * time.Second)
 	w.Write([]byte("Ok"))
 }

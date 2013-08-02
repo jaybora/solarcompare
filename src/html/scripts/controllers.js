@@ -143,7 +143,7 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams) {
 }
 
 function MyPlantsCtrl($scope, MyPlants) {
-	$scope.plants = MyPlants;
+	$scope.plants = MyPlants.getAll();
 
 	$scope.gridOptions = {
 		data: 'plants',
@@ -158,11 +158,39 @@ function MyPlantsCtrl($scope, MyPlants) {
 	};
 
 	$scope.add = function() {
-		console.log("Create new one");
+		window.location.assign("#/myplants/add");
 	}
 }
 
 function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, DataProviders) {
+	$scope.findMe = function () {
+		console.log("Find me running...");
+			
+		if ($scope.geolocationAvailable) {
+			
+			navigator.geolocation.getCurrentPosition(function (position) {
+				
+				$scope.map.center = {
+					latitude: position.coords.latitude,
+					longitude: position.coords.longitude
+				};
+				$scope.map.latitude = position.coords.latitude;
+				$scope.map.longitude = position.coords.longitude;
+				$scope.map.markers = [
+				   {latitude: position.coords.latitude,
+					longitude: position.coords.longitude}];
+						
+				$scope.$apply();
+			}, function () {
+				
+			});
+		}	
+	};
+
+	$scope.addMode = $routeParams.PlantKey == 'add';
+	console.log("addMode is " + $scope.addMode);
+
+	
 	$scope.DataProviders = DataProviders;
 	if ($scope.plant === undefined) {
 		$scope.plant = {Latitude: 0,
@@ -182,67 +210,60 @@ function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, Da
 
 	$scope.geolocationAvailable = navigator.geolocation ? true : false;
 	
-	
-	MyPlants.then(function(plants) {
-		$scope.plant = _.find(plants, function(plant) {
-			return plant.PlantKey === $routeParams.PlantKey;
-		});
-		console.log("Setting map of plant to scope");
-		$scope.map.latitude = $scope.plant.Latitude;
-		$scope.map.longitude = $scope.plant.Longitude;
-		$scope.map.markers = [
-			   {latitude: $scope.plant.Latitude,
-				longitude: $scope.plant.Longitude}];
+	if ($scope.addMode) {
+	} else {
+		MyPlants.getAll().then(function(plants) {
+			$scope.plant = _.find(plants, function(plant) {
+				return plant.PlantKey === $routeParams.PlantKey;
+			});
+			console.log("Setting map of plant to scope");
+			$scope.map.latitude = $scope.plant.Latitude;
+			$scope.map.longitude = $scope.plant.Longitude;
+			$scope.map.markers = [
+				   {latitude: $scope.plant.Latitude,
+					longitude: $scope.plant.Longitude}];
 
-		$scope.installationdate = new Date($scope.plant.InstallationData.StartDate)
-		if ($scope.installationdate.getFullYear() < 1000) {
-			$scope.installationdate = new Date();
-		}
-		
-		// In order to make the map draw correctly after user 
-		// reselect same plant, make the center property update 
-		// in new event thread
-		$timeout(function() {
-			$scope.map.center = {
-					latitude: $scope.plant.Latitude,
-					longitude: $scope.plant.Longitude
-			};
-			$scope.$apply();
-		}, 0);
-
-
-	})
-
-	$scope.findMe = function () {
-		console.log("Find me running...");
+			$scope.installationdate = new Date($scope.plant.InstallationData.StartDate)
+			if ($scope.installationdate.getFullYear() < 1000) {
+				$scope.installationdate = new Date();
+			}
 			
-			if ($scope.geolocationAvailable) {
-				
-				navigator.geolocation.getCurrentPosition(function (position) {
-					
-					$scope.map.center = {
-						latitude: position.coords.latitude,
-						longitude: position.coords.longitude
-					};
-					$scope.map.latitude = position.coords.latitude;
-					$scope.map.longitude = position.coords.longitude;
-					$scope.map.markers = [
-					   {latitude: position.coords.latitude,
-						longitude: position.coords.longitude}];
-							
-					$scope.$apply();
-				}, function () {
-					
-				});
-			}	
-		};
+			// In order to make the map draw correctly after user 
+			// reselect same plant, make the center property update 
+			// in new event thread
+			$timeout(function() {
+				$scope.map.center = {
+						latitude: $scope.plant.Latitude,
+						longitude: $scope.plant.Longitude
+				};
+				$scope.$apply();
+			}, 0);
+		})
+	}
+
+	$scope.createPlant = function() {
+		console.log("Create plant")
+		$scope.plant = MyPlants.add($scope.PlantKey);
+		$scope.plant.PlantKey = $scope.PlantKey;
+		$scope.plant.InstallationData = {};
+		$scope.plant.InitiateData = {};
+		$scope.findMe();
+		$scope.installationdate = new Date();
+		$scope.addMode = false;
+	}
+
 
 
 	$scope.update = function() {
+		if ($scope.addMode) {
+			// Post to be ignored
+			return;
+		}
 		// Update map data from map object and make it a string
 		$scope.plant.Longitude = $scope.map.longitude + "";
 		$scope.plant.Latitude = $scope.map.latitude + "";
 		$scope.plant.InstallationData.StartDate = $scope.installationdate;
+		$scope.plant.InitiateData.PlantKey = $scope.plant.PlantKey;
 		$scope.plant.put().then(function() {
 			console.log("Saved OK");
 			$window.location.assign('#/myplants');
@@ -254,11 +275,45 @@ function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, Da
 		});
 	}
 
+	$scope.delete = function() {
+		var sure = confirm("Vil du sikker på du ønsker at slette anlægget?");
+		if (sure) {
+			$scope.plant.remove().then(function() {
+				console.log("Deleted ok");
+				$window.location.assign('#/myplants');
+				
+			}, function() {
+				alert("Der opstod en fejl ved sletning");
+
+			});
+		}
+	}
+
 	$scope.cancel = function() {
-		$scope.plant.get().then(function(plant) {
-			$scope.plant = plant;
+		if ($scope.addMove) {
+			$scope.plant.get().then(function(plant) {
+				$scope.plant = plant;
+				$window.location.assign('#/myplants');
+			});				
+		} else {
 			$window.location.assign('#/myplants');
-		});		
+		}
+	}
+
+	$scope.showUsername = function() {
+		return _.contains(DataProviders.RequiredFields, 'UserName');
+	}
+
+	$scope.showPassword = function() {
+		return _.contains(DataProviders.RequiredFields, 'Password');
+	}
+
+	$scope.showPlantno = function() {
+		return _.contains(DataProviders.RequiredFields, 'PlantNo');
+	}
+
+	$scope.showAddress = function() {
+		return _.contains(DataProviders.RequiredFields, 'Address');
 	}
 
 

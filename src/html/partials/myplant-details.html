@@ -1,9 +1,24 @@
-<h4 style="padding-bottom: 1em;">
+<h4 style="padding-bottom: 1em;" ng-hide="addMode">
 	Rediger oplysning for anlæg {{plant.PlantKey}} - {{plant.Name}}
 </h4>
-<form name="plantdata">
+<h4 style="padding-bottom: 1em;" ng-show="addMode">
+	Opret nyt anlæg {{plant.PlantKey}} {{plant.Name}}
+</h4>
+<form name="plantdata" ng-submit="update()">
 	<table class="plantdata">
 		<tr>
+			<td class="plantdata">
+				<label for="plantkey" ng-show="addMode">Anlægs id</label>
+			</td>
+			<td class="plantdata">
+				<input type="text" id="plantkey" size="20" maxlength="80" ng-model="PlantKey" ng-show="addMode" required/>
+			</td>
+			<td>
+				<button ng-show="addMode" ng-click="createPlant()" class="btn  btn-primary">Opret</button>
+			</td>
+
+		</tr>		
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="plantname">Navn</label>
 			</td>
@@ -11,7 +26,7 @@
 				<input type="text" id="plantname" size="20" maxlength="80" ng-model="plant.Name" required/>
 			</td>
 		</tr>		
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="map">Kort</label>
 			</td>
@@ -19,7 +34,7 @@
 				<google-map center="map.center" draggable="true" zoom="map.zoom" mark-click="true" refresh="map.refresh" markers="map.markers" longitude="map.longitude" latitude="map.latitude" style="height: 200px; width: 200px; display:block;"></google-map>
 			</td>
 			<td class="plantdata">
-				<button ng-click="findMe()" class="btn btn-primary">Hit mig</button>
+				<a ng-click="findMe()" class="btn">Hit mig</a>
 			</td>
 		</tr>
 <!--
@@ -70,7 +85,7 @@
 				<input id="picture" type="file" size="20" maxlength="40" ng-model="plant.Picture"/>
 			</td>
 		</tr> -->
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="panelvendor">Panel producent</label>
 			</td>
@@ -78,7 +93,7 @@
 				<input type="text" id="panelvendor" size="20" maxlength="40" ng-model="plant.Panels.Vendor"/>
 			</td>
 		</tr>
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="panelmodel">Panel model</label>
 			</td>
@@ -86,7 +101,7 @@
 				<input type="text" id="panelmodel" size="20" maxlength="40" ng-model="plant.Panels.Model"/>
 			</td>
 		</tr>
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="panelcapacity">Paneler samlet effekt</label>
 			</td>
@@ -94,7 +109,7 @@
 				<input type="number" id="panelcapacity" size="7" maxlength="7" min="0" max="9999999" ng-model="plant.Panels.Capacity"/> watt peak
 			</td>
 		</tr>
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="panelpieces">Antal paneler</label>
 			</td>
@@ -102,7 +117,7 @@
 				<input type="number" min="0" max="9999" id="panelpieces" size="2" maxlength="4" ng-model="plant.Panels.Pieces"/> stk
 			</td>
 		</tr>
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="invertervendor">Inverter producent</label>
 			</td>
@@ -110,7 +125,7 @@
 				<input type="text" id="invertervendor" size="20" maxlength="40" ng-model="plant.Inverter.Vendor"/>
 			</td>
 		</tr>
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="invertermodel">Inverter model</label>
 			</td>
@@ -118,7 +133,7 @@
 				<input type="text" id="invertermodel" size="20" maxlength="40" ng-model="plant.Inverter.Model"/>
 			</td>
 		</tr>
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="invertercapacity">Inverter effekt</label>
 			</td>
@@ -126,7 +141,7 @@
 				<input type="number" id="invertercapacity" size="7" maxlength="7" min="0" max="9999999" ng-model="plant.Inverter.Capacity"/> watt peak
 			</td>
 		</tr>
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="installationdate">Idriftsættelsesdato</label>
 			</td>
@@ -136,7 +151,7 @@
 			</td>
     		<td><em>{{installationdate | date:'fullDate' }}</em></td>
 		</tr>
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="installationprice">Pris</label>
 			</td>
@@ -145,21 +160,53 @@
 				<p>Incl. montering <input type="checkbox" ng-model="plant.InstallationData.PriceIncludeMounting"></p>
 			</td>
 		</tr>
-		
-		<tr>
+		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="dataprovider">Dataleverandør</label>
 			</td>
 			<td class="plantdata">
-				<select id="dataprovider" ng-model="plant.DataProvider" ng-options="d.DataProvider as d.Name for d in DataProviders" popover="Vælg den leverandør der passer til din inverter" popover-trigger="mouseenter">
+				<select id="dataprovider" ng-model="plant.DataProvider" ng-options="d.DataProvider as d.Name for d in DataProviders" required>
 				</select>
+			</td>
+		</tr>
+		<tr ng-show="showUsername()">
+			<td class="plantdata">
+				<label for="username">Brugernavn</label>
+			</td>
+			<td class="plantdata">
+				<input type="text" id="username" size="20" maxlength="80" ng-model="plant.InitiateData.UserName"/>
+			</td>
+		</tr>
+		<tr ng-show="showPassword()">
+			<td class="plantdata">
+				<label for="password">Adgangskode</label>
+			</td>
+			<td class="plantdata">
+				<input type="password" id="password" size="20" maxlength="80" ng-model="plant.InitiateData.Password"/>
+			</td>
+		</tr>
+		<tr ng-show="showPlantno()">
+			<td class="plantdata">
+				<label for="plantno">Anlægs nummer</label>
+			</td>
+			<td class="plantdata">
+				<input type="text" id="plantno" size="2" maxlength="10" ng-model="plant.InitiateData.PlantNo"/>
+			</td>
+		</tr>
+		<tr ng-show="showAddress()">
+			<td class="plantdata">
+				<label for="address">Internet adresse</label>
+			</td>
+			<td class="plantdata">
+				<input type="text" id="address" size="20" maxlength="100" ng-model="plant.InitiateData.Address"/>
 			</td>
 		</tr>
 		<tr>
 			<td/>
 			<td>
-				<button ng-click="update()" class="btn">Gem</button>
-				<button ng-click="cancel()" class="btn">Annuller</button>
+				<a ng-hide="addMode" ng-click="delete()" class="btn btn-danger">Slet anlæg</a>
+				<a ng-click="cancel()" class="btn">Annuller</a>
+				<button ng-hide="addMode" ng-click="update()" class="btn  btn-primary">Gem</button>
 			</td>			
 		</tr>
 		
