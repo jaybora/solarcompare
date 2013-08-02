@@ -17,6 +17,39 @@ import (
 	"time"
 )
 
+/* Example of recieved JSON for update pac as changed to at 1. august 2013
+   Note that when the inverter is in standby currentPlantPower is not transmitted
+
+{"Timestamp":"\/Date(1375477009869)\/",
+ "Info":{
+ 	"currentPlantTime":"Freitag, 2. August 2013 20:56",
+ 	"currentPlantPowerUnit":"W",
+ 	"currentPlantPower":"0",
+ 	"currentPlantPowerPointerAngle":0},
+ "PV":null,
+ "FeedIn":null,
+ "GridConsumption":null,
+ "DirectConsumption":null,
+ "SelfConsumption":null,
+ "TotalConsumption":null,
+ "DirectConsumptionQuote":null,
+ "SelfConsumptionQuote":null,
+ "AutarkyQuote":null,
+ "BatteryIn":null,
+ "BatteryOut":null,
+ "BatteryChargeStatus":null,
+ "OperationHealth":{
+ 	"Ok":1,
+ 	"Warning":0,
+ 	"Error":0,
+ 	"Unknown":0},
+ "BatteryStateOfHealth":null,
+ "InfoMessages":[],
+ "WarningMessages":[],
+ "ErrorMessages":[]}
+
+*/
+
 type sunnyDataProvider struct {
 	InitiateData dataproviders.InitiateData
 	latestErr    error
@@ -25,8 +58,13 @@ type sunnyDataProvider struct {
 	Plantname    string
 }
 
-type smaPacReply struct {
+type smaPacReplyInfo struct {
 	CurrentPlantPower string `json:"currentPlantPower"`
+	CurrentPlantTime  string `json:"currentPlantTime"`
+}
+
+type smaPacReply struct {
+	Info smaPacReplyInfo
 }
 
 var log = logger.NewLogger(logger.TRACE, "Dataprovider: SunnyPortal:")
@@ -316,13 +354,24 @@ func updatePacData(c *http.Client) (pac uint16, err error) {
 		log.Fail(err.Error())
 		return
 	}
-	pacint, err := strconv.Atoi(pacReply.CurrentPlantPower)
+	if pacReply.Info.CurrentPlantTime != "" &&
+		pacReply.Info.CurrentPlantPower == "" {
+		// There was reply on the date but CurrentPlantPower
+		// is not within the json string. This means the inverter is
+		// in standby.. So we say thats ok, an sets the
+		// current power production to 0
+		pac = 0
+	} else {
+		pacint := 0
+		pacint, err = strconv.Atoi(pacReply.Info.CurrentPlantPower)
 
-	if err != nil {
-		log.Fail(err.Error())
-		return
+		if err != nil {
+			log.Fail(err.Error())
+			return
+		}
+		pac = uint16(pacint)
 	}
-	pac = uint16(pacint)
+
 	return
 }
 
