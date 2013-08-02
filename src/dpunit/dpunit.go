@@ -87,10 +87,10 @@ func startWebServer() {
 
 	http.HandleFunc("/", defaultHandler)
 	http.HandleFunc("/plant", func(w http.ResponseWriter, r *http.Request) {
-		web.PlantHandler(w, r, &controller, plants, pvStore, true)
+		web.PlantHandler(w, r, &controller, plants, pvStore, 0)
 	})
 	http.HandleFunc("/plant/", func(w http.ResponseWriter, r *http.Request) {
-		web.PlantHandler(w, r, &controller, plants, pvStore, true)
+		web.PlantHandler(w, r, &controller, plants, pvStore, 0)
 	})
 	go uploadPublicUrl()
 
