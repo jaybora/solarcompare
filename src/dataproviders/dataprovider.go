@@ -45,6 +45,7 @@ const (
 	Suntrol     = iota
 	Danfoss     = iota
 	Kostal      = iota
+	Solaredge   = iota
 )
 
 type DataProviderDescription struct {
@@ -58,7 +59,8 @@ var DataProviders = []DataProviderDescription{
 	{SunnyPortal, "SunnyPortal", []string{"UserName", "Password", "PlantNo"}},
 	{Suntrol, "Suntrol", []string{"PlantNo"}},
 	{Danfoss, "Danfoss", []string{"UserName", "Password", "Address"}},
-	{Kostal, "Kostal", []string{"UserName", "Password", "Address"}}}
+	{Kostal, "Kostal", []string{"UserName", "Password", "Address"}},
+	{Solaredge, "Solaredge", []string{"PlantNo"}}}
 
 // RunUpdates on the provider.
 // updateFast, a function that gets called when a fast update is scheduled
