@@ -165,7 +165,7 @@
 				<label for="dataprovider">Dataleverandør</label>
 			</td>
 			<td class="plantdata">
-				<select id="dataprovider" ng-model="plant.DataProvider" ng-options="d.DataProvider as d.Name for d in DataProviders" required>
+				<select id="dataprovider" ng-model="plant.DataProvider" ng-options="d.DataProvider as d.Name for d in DataProviders" required ng-change="updatedDataprovider()">
 				</select>
 			</td>
 		</tr>

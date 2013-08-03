@@ -187,6 +187,15 @@ function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, Da
 		}	
 	};
 
+	$scope.updatedDataprovider = function() {
+		console.log("Changed dataprovider");
+		DataProviders.then(function(providers) {
+			$scope.selectedDataProvider = _.find(providers, function(provider) {
+					return provider.DataProvider === $scope.plant.DataProvider;
+				});
+		});
+	}
+
 	$scope.addMode = $routeParams.PlantKey == 'add';
 	console.log("addMode is " + $scope.addMode);
 
@@ -227,6 +236,8 @@ function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, Da
 			if ($scope.installationdate.getFullYear() < 1000) {
 				$scope.installationdate = new Date();
 			}
+			$scope.updatedDataprovider();
+
 			
 			// In order to make the map draw correctly after user 
 			// reselect same plant, make the center property update 
@@ -301,20 +312,34 @@ function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, Da
 	}
 
 	$scope.showUsername = function() {
-		return _.contains(DataProviders.RequiredFields, 'UserName');
+		if ($scope.selectedDataProvider == undefined) {
+			return false;
+		}
+		return _.contains($scope.selectedDataProvider.RequiredFields, 'UserName');
 	}
 
 	$scope.showPassword = function() {
-		return _.contains(DataProviders.RequiredFields, 'Password');
+		if ($scope.selectedDataProvider == undefined) {
+			return false;
+		}
+		return _.contains($scope.selectedDataProvider.RequiredFields, 'Password');
 	}
 
 	$scope.showPlantno = function() {
-		return _.contains(DataProviders.RequiredFields, 'PlantNo');
+		if ($scope.selectedDataProvider == undefined) {
+			return false;
+		}
+		return _.contains($scope.selectedDataProvider.RequiredFields, 'PlantNo');
 	}
 
 	$scope.showAddress = function() {
-		return _.contains(DataProviders.RequiredFields, 'Address');
+		if ($scope.selectedDataProvider == undefined) {
+			return false;
+		}
+		return _.contains($scope.selectedDataProvider.RequiredFields, 'Address');
 	}
+
+
 
 
 }
