@@ -3,10 +3,11 @@ package dispatcher
 import (
 	"dataproviders"
 	"dataproviders/JFY"
-	"dataproviders/sunnyportal"
-	"dataproviders/suntrol"
 	"dataproviders/danfoss"
 	"dataproviders/kostal"
+	"dataproviders/solaredge"
+	"dataproviders/sunnyportal"
+	"dataproviders/suntrol"
 	"fmt"
 	"net/http"
 )
@@ -26,8 +27,8 @@ func Provider(implType int,
 		//provider = &jfy
 		return
 	case dataproviders.SunnyPortal:
-		_, err2 := sunnyportal.NewDataProvider(init, term, newClient(), 
-		                                           pvStore, statsStore, terminateCh)
+		_, err2 := sunnyportal.NewDataProvider(init, term, newClient(),
+			pvStore, statsStore, terminateCh)
 		if err2 != nil {
 			err = err2
 			return
@@ -46,7 +47,12 @@ func Provider(implType int,
 		kostal.NewDataProvider(init, term, newClient(), pvStore, statsStore, terminateCh)
 		//provider = &dp
 		return
-	err = fmt.Errorf("No provider found for %d", implType)
+	case dataproviders.Solaredge:
+		solaredge.NewDataProvider(init, term, newClient(), pvStore, statsStore, terminateCh)
+		//provider = &dp
+		return
+	default:
+		err = fmt.Errorf("No provider found for %d", implType)
 	}
 	return
 }
