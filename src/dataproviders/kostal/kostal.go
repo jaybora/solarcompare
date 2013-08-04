@@ -6,20 +6,18 @@ import (
 	"io/ioutil"
 	"logger"
 	"net/http"
-	"time"
 	"regexp"
 	"strconv"
+	"time"
 )
 
-
 type dataProvider struct {
-	InitiateData   dataproviders.InitiateData
-	latestErr      error
-	client         *http.Client
+	InitiateData dataproviders.InitiateData
+	latestErr    error
+	client       *http.Client
 }
 
-
-var log = logger.NewLogger(logger.DEBUG, "Dataprovider: Kostal:")
+var log = logger.NewLogger(logger.INFO, "Dataprovider: Kostal:")
 
 const MAX_ERRORS = 5
 
@@ -27,16 +25,17 @@ const urlTemplate = "http://%s"
 
 const allValuesRegEx = "[0-9|\\.]+</td>"
 const numberRegEx = "[0-9|\\.]+"
+
 func (d *dataProvider) Name() string {
 	return "N/A"
 }
 
-func NewDataProvider(initiateData dataproviders.InitiateData, 
-                     term dataproviders.TerminateCallback,
-                     client *http.Client,
-                     pvStore dataproviders.PvStore,
-                     statsStore dataproviders.PlantStatsStore,
-                     terminateCh chan int) dataProvider {
+func NewDataProvider(initiateData dataproviders.InitiateData,
+	term dataproviders.TerminateCallback,
+	client *http.Client,
+	pvStore dataproviders.PvStore,
+	statsStore dataproviders.PlantStatsStore,
+	terminateCh chan int) dataProvider {
 	log.Debug("New dataprovider")
 
 	dp := dataProvider{initiateData,
@@ -48,13 +47,13 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 			err := updatePvData(client, initiateData, pv)
 			pv.LatestUpdate = nil
 			return err
-		}, 
+		},
 		func(initiateData *dataproviders.InitiateData, pv *dataproviders.PvData) error {
 			return nil
-		}, 
-		time.Second * 10,
-		time.Minute * 5,
-		time.Minute * 30,
+		},
+		time.Second*10,
+		time.Minute*5,
+		time.Minute*30,
 		terminateCh,
 		term,
 		MAX_ERRORS,
@@ -67,70 +66,86 @@ func NewDataProvider(initiateData dataproviders.InitiateData,
 // Update PvData
 func updatePvData(client *http.Client, initiateData *dataproviders.InitiateData, pv *dataproviders.PvData) error {
 	log.Debug("Fetching update ...")
-	
+
 	b, err := genericdata(client, initiateData)
 	values, err := parseToValues(&b)
-	if err != nil {return err}	
+	if err != nil {
+		return err
+	}
 
 	// Pac
 	pacFloat, err := parseToValue(values[0])
-	if err != nil {return err}	
-	pv.PowerAc = uint16(pacFloat) 
+	if err != nil {
+		return err
+	}
+	pv.PowerAc = uint16(pacFloat)
 
 	//Energy total
 	etFloat, err := parseToValue(values[1])
-	if err != nil {return err}	
+	if err != nil {
+		return err
+	}
 	pv.EnergyTotal = float32(etFloat)
-	
+
 	// Energy today
 	edFloat, err := parseToValue(values[2])
-	if err != nil {return err}	
-	pv.EnergyToday = uint16(edFloat*1000)
-	
+	if err != nil {
+		return err
+	}
+	pv.EnergyToday = uint16(edFloat * 1000)
+
 	// Volt DC
 	voltFloatSum, err := parseToValue(values[3])
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	voltFloat, err := parseToValue(values[7])
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	voltFloatSum += voltFloat
 	voltFloat, err = parseToValue(values[11])
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	voltFloatSum += voltFloat
 	pv.VoltDc = float32(voltFloatSum)
-	
+
 	//Amp DC
 	ampFloatSum, err := parseToValue(values[5])
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	ampFloat, err := parseToValue(values[9])
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	ampFloatSum += ampFloat
 	ampFloat, err = parseToValue(values[13])
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	ampFloatSum += ampFloat
 	pv.AmpereAc = float32(ampFloatSum)
-	
-	
-	 
-	
-//	err = pac(sid, client, initiateData, pv, &b)
-//	err = etoday(sid, client, initiateData, pv, &b)
-//	if err != nil {return err}
-//	err = etotal(sid, client, initiateData, pv, &b)
-//	if err != nil {return err}
-//	logout(sid, client, initiateData)
+
+	//	err = pac(sid, client, initiateData, pv, &b)
+	//	err = etoday(sid, client, initiateData, pv, &b)
+	//	if err != nil {return err}
+	//	err = etotal(sid, client, initiateData, pv, &b)
+	//	if err != nil {return err}
+	//	logout(sid, client, initiateData)
 	return nil
 }
 
-
-func genericdata(client *http.Client, 
-            initiateData *dataproviders.InitiateData) (b []byte, err error) {
+func genericdata(client *http.Client,
+	initiateData *dataproviders.InitiateData) (b []byte, err error) {
 	//Get data ----------------------------------------------------------------------------
 	url := fmt.Sprintf(urlTemplate, initiateData.Address)
 	log.Tracef("Getting data from inverter... url is %s", url)
 	req, err := http.NewRequest("GET", url, nil)
 	req.SetBasicAuth(initiateData.UserName, initiateData.Password)
 	resp, err := client.Do(req)
-	
+
 	if resp.StatusCode != 200 {
 		err = fmt.Errorf("Dataprovider kostal fail. Received http status %d from inverter doing data gathering", resp.StatusCode)
 		log.Infof("%s", err.Error())
@@ -144,7 +159,7 @@ func genericdata(client *http.Client,
 }
 
 func parseToValues(resp *[]byte) (values [][]byte, err error) {
-	 
+
 	reg, err := regexp.Compile(allValuesRegEx)
 	if err != nil {
 		log.Fail(err.Error())
@@ -152,14 +167,14 @@ func parseToValues(resp *[]byte) (values [][]byte, err error) {
 	values = reg.FindAll(*resp, -1)
 	if len(values) < 1 {
 		err = fmt.Errorf("Could not find any values in response from inverter")
-		
+
 	}
 	log.Debugf("Found values to be '%s'", values)
-	
-	return;
+
+	return
 }
 
-func parseToValue(unparsedValue []byte) (value float64, err error) {	
+func parseToValue(unparsedValue []byte) (value float64, err error) {
 
 	reg, err := regexp.Compile(numberRegEx)
 	if err != nil {
@@ -173,12 +188,13 @@ func parseToValue(unparsedValue []byte) (value float64, err error) {
 
 	log.Debugf("Value as string is %s", valstr)
 	value, err = strconv.ParseFloat(string(valstr), 64)
-	return;
+	return
 }
+
 //
-//func etoday(sid string, client *http.Client, 
+//func etoday(sid string, client *http.Client,
 //            initiateData *dataproviders.InitiateData, pv *dataproviders.PvData, resp *[]byte) error {
-//	
+//
 //	reg, err := regexp.Compile(etodayRegEx)
 //	if err != nil {
 //		log.Fail(err.Error())f
@@ -189,7 +205,7 @@ func parseToValue(unparsedValue []byte) (value float64, err error) {
 //		err := fmt.Errorf("Could not find etoday in response from inverter")
 //		return err
 //	}
-//	
+//
 //	reg, err = regexp.Compile(numberRegEx)
 //	if err != nil {
 //		log.Fail(err.Error())
@@ -203,7 +219,7 @@ func parseToValue(unparsedValue []byte) (value float64, err error) {
 //	etoday := string(foundPart2[1:])
 //	log.Debugf("Current etoday is %s", etoday)
 //	etodayfloat, err := strconv.ParseFloat(etoday, 64)
-//	
+//
 //	// Are the value in kW or W?
 //	factor := 1.0
 //	if string(foundPart1[len(foundPart1)-1:len(foundPart1)]) == "k" {
@@ -212,9 +228,9 @@ func parseToValue(unparsedValue []byte) (value float64, err error) {
 //	pv.EnergyToday = uint16(etodayfloat*factor)
 //	return nil
 //}
-//func etotal(sid string, client *http.Client, 
+//func etotal(sid string, client *http.Client,
 //            initiateData *dataproviders.InitiateData, pv *dataproviders.PvData, resp *[]byte) error {
-//	
+//
 //	reg, err := regexp.Compile(etotalRegEx)
 //	if err != nil {
 //		log.Fail(err.Error())
@@ -225,7 +241,7 @@ func parseToValue(unparsedValue []byte) (value float64, err error) {
 //		err := fmt.Errorf("Could not find etotal in response from inverter")
 //		return err
 //	}
-//	
+//
 //	reg, err = regexp.Compile(numberRegEx)
 //	if err != nil {
 //		log.Fail(err.Error())
@@ -239,13 +255,13 @@ func parseToValue(unparsedValue []byte) (value float64, err error) {
 //	etotal := string(foundPart2[1:])
 //	log.Debugf("Current etotal is %s", etotal)
 //	etotalfloat, err := strconv.ParseFloat(etotal, 64)
-//	
+//
 //	pv.EnergyTotal = float32(etotalfloat)
 //	return nil
 //}
 //
 //func logout(sid string, client *http.Client, initiateData *dataproviders.InitiateData) {
-//	//Do logout 
+//	//Do logout
 //	logouturl := fmt.Sprintf(urlTemplate, initiateData.Address, fmt.Sprintf(logoutUrl, sid))
 //	log.Tracef("Logging out from inverter... url is %s", logouturl)
 //	resp, err := client.Get(logouturl)

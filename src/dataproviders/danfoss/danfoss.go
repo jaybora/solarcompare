@@ -18,7 +18,7 @@ type dataProvider struct {
 	client       *http.Client
 }
 
-var log = logger.NewLogger(logger.DEBUG, "Dataprovider: Danfoss:")
+var log = logger.NewLogger(logger.INFO, "Dataprovider: Danfoss:")
 
 const MAX_ERRORS = 5
 

@@ -67,7 +67,7 @@ type smaPacReply struct {
 	Info smaPacReplyInfo
 }
 
-var log = logger.NewLogger(logger.TRACE, "Dataprovider: SunnyPortal:")
+var log = logger.NewLogger(logger.INFO, "Dataprovider: SunnyPortal:")
 
 const MAX_ERRORS = 5
 
