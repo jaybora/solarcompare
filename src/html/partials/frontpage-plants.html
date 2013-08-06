@@ -8,7 +8,7 @@
 	<script>
 	(adsbygoogle = window.adsbygoogle || []).push({});
 	</script>   -->
-	<table class="comp" >
+	<table ng-show="plants.length > 0" class="table table-bordered table-striped" >
 		<thead>
 			<tr>
 				<th class="headcol">
@@ -119,6 +119,9 @@
 			</tr>
 		</tbody>
 	</table>
+	<p class="lead" ng-show="plants.length == 0">
+		Ingen anlæg at vise
+	</p>
 	<!--
 <script async src="http://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 

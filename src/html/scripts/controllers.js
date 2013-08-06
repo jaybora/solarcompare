@@ -348,3 +348,10 @@ function UserCtrl($scope, My) {
 	$scope.user = My
 }
 
+function AboutCtrl() {
+	
+}
+
+function NewsCtrl() {
+
+}
