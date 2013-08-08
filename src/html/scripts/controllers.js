@@ -8,18 +8,18 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams) {
 			var plant = plants[i];
 			
 			
-			// For map
-			plant.map = {};
-			plant.map.center = {
-				latitude: plant.Latitude,
-				longitude: plant.Longitude
-			};
-			plant.map.zoom = 7;
+			// // For map
+			// plant.map = {};
+			// plant.map.center = {
+			// 	latitude: plant.Latitude,
+			// 	longitude: plant.Longitude
+			// };
+			// plant.map.zoom = 7;
 
-			console.log("Setting map for " + plant.PlantKey);
-			plant.map.markers = [	
-				   {latitude: plant.Latitude,
-					longitude: plant.Longitude}];
+			// console.log("Setting map for " + plant.PlantKey);
+			// plant.map.markers = [	
+			// 	   {latitude: plant.Latitude,
+			// 		longitude: plant.Longitude}];
 			
 
 			// For gauge chart
@@ -145,17 +145,17 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams) {
 function MyPlantsCtrl($scope, MyPlants) {
 	$scope.plants = MyPlants.getAll();
 
-	$scope.gridOptions = {
-		data: 'plants',
-		multiSelect: false,
-		keepLastSelected:false,
-		columnDefs: [{field:'PlantKey', displayName:'Anlægs id'},
-		{field:'Name', displayName:'Navn'}],
-	    beforeSelectionChange:function(row){
-			window.location.assign("#/myplants/" + row.entity.PlantKey);
-			return false;
-		}
-	};
+	// $scope.gridOptions = {
+	// 	data: 'plants',
+	// 	multiSelect: false,
+	// 	keepLastSelected:false,
+	// 	columnDefs: [{field:'PlantKey', displayName:'Anlægs id'},
+	// 	{field:'Name', displayName:'Navn'}],
+	//     beforeSelectionChange:function(row){
+	// 		window.location.assign("#/myplants/" + row.entity.PlantKey);
+	// 		return false;
+	// 	}
+	// };
 
 	$scope.add = function() {
 		window.location.assign("#/myplants/add");

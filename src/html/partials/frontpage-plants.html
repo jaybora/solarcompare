@@ -1,4 +1,4 @@
-<div>
+<div class="xscroll">
 <!--
 	<script async src="http://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 	<ins class="adsbygoogle"
@@ -8,12 +8,12 @@
 	<script>
 	(adsbygoogle = window.adsbygoogle || []).push({});
 	</script>   -->
-	<table ng-show="plants.length > 0" class="table table-bordered table-striped" >
+	<table ng-show="plants.length > 0" class="table table-bordered">
 		<thead>
 			<tr>
-				<th class="headcol">
+				<th>
 				</th>
-				<th ng-repeat="plant in plants" class="headcol">
+				<th ng-repeat="plant in plants" class="text-center top-align">
 					<span>{{plant.Name}}</span>
 
 				</th>
@@ -21,19 +21,19 @@
 		</thead>
 		<tbody>
 			<tr>
-				<td class="headcol">
+				<td>
 					Seneste opdatering kl
 				</td>
-				<td ng-repeat="plant in plants" class="comp" style="text-align: center">
+				<td ng-repeat="plant in plants" class="text-center">
 					<span>{{plant.pvdata.LatestUpdate | timeFilter}}</span>
 
 				</td>
 			</tr>
 			<tr>
-				<td class="headcol">
+				<td>
 					Aktuel produktion
 				</td>
-				<td ng-repeat="plant in plants" class="comp">
+				<td ng-repeat="plant in plants" class="text-center">
 					<div ng-show="plant.PowerAcGauge">
 						<div google-chart chart="plant.PowerAcGauge"/>
 					</div>
@@ -45,10 +45,10 @@
 				</td>
 			</tr>
 			<tr>
-				<td class="headcol">
+				<td>
 					Dags produktion
 				</td>
-				<td ng-repeat="plant in plants" class="comp">
+				<td ng-repeat="plant in plants" class="text-center">
 					<div ng-show="plant.EnergyTodayAreaChart">
 						<div google-chart chart="plant.EnergyTodayAreaChart"/>
 					</div>					
@@ -60,7 +60,7 @@
 				<td class="headcol">
 					Total produktion
 				</td>
-				<td ng-repeat="plant in plants" class="comp">
+				<td ng-repeat="plant in plants" class="text-center">
 					<span>{{plant.pvdata.EnergyTotal}} kWh</span>
 
 				</td>
@@ -69,15 +69,17 @@
 				<td class="headcol">
 					Kort
 				</td>
-				<td ng-repeat="plant in plants" class="comp" style="text-align: center">
-					<google-map center="plant.map.center" draggable="false" zoom="plant.map.zoom" mark-click="false" markers="plant.map.markers" style="height: 120px; width: 120px; display:block;"></google-map>
+				<td ng-repeat="plant in plants" class="text-center">
+					<img src="http://maps.googleapis.com/maps/api/staticmap?zoom=7&center={{plant.Latitude}},{{plant.Longitude}}&size=120x120&maptype=roadmap&markers={{plant.Latitude}},{{plant.Longitude}}&sensor=false" height="120px" width="120px"/>
+					<!--
+					<google-map center="plant.map.center" draggable="false" zoom="plant.map.zoom" mark-click="false" markers="plant.map.markers" style="height: 120px; width: 120px; display:block;"></google-map>-->
 				</td>
 			</tr>
 			<tr>
 				<td class="headcol">
 					Effekt paneler
 				</td>
-				<td ng-repeat="plant in plants" class="comp">
+				<td ng-repeat="plant in plants" class="text-center">
 					<span>{{plant.Panels.Capacity}} kWp</span>
 
 				</td>
@@ -86,7 +88,7 @@
 				<td class="headcol">
 					Antal paneler
 				</td>
-				<td ng-repeat="plant in plants" class="comp">
+				<td ng-repeat="plant in plants" class="text-center">
 					<span>{{plant.Panels.Pieces}} stk</span>
 
 				</td>
@@ -95,7 +97,7 @@
 				<td class="headcol">
 					Paneler producent og model
 				</td>
-				<td ng-repeat="plant in plants" class="comp">
+				<td ng-repeat="plant in plants" class="text-center">
 					<span>{{plant.Panels.Vendor}} {{plant.Panels.Model}}</span>
 
 				</td>
@@ -104,7 +106,7 @@
 				<td class="headcol">
 					Effekt inverter
 				</td>
-				<td ng-repeat="plant in plants" class="comp">
+				<td ng-repeat="plant in plants" class="text-center">
 					<span>{{plant.Inverter.Capacity}} kWp</span>
 
 				</td>
@@ -113,7 +115,7 @@
 				<td class="headcol">
 					Inverter producent og model
 				</td>
-				<td ng-repeat="plant in plants" class="comp">
+				<td ng-repeat="plant in plants" class="text-center">
 					<span>{{plant.Inverter.Vendor}} {{plant.Inverter.Model}}</span>
 				</td>
 			</tr>

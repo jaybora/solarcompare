@@ -4,18 +4,18 @@
 	<p style="padding-bottom: 1em;">
 		<button ng-click="add()" class="btn ">Tilføj nyt anlæg</button> 
 		Klik på anlæg for at ændre</p>
-	<div class="gridStyle" ng-grid="gridOptions"></div>
-	<!--
-	<table class="myplants">
+	<!-- <div class="gridStyle" ng-grid="gridOptions"></div> -->
+	
+	<table class="table table-bordered table-striped table-hover">
 		<tr>
 			<th>Anlægs id</th>
 			<th>Anlægsnavn</th>
 		</tr>
 		<tr ng-repeat="plant in plants">
-			<td>{{plant.PlantKey}}</td>
-			<td>{{plant.Name}}</td>
+			<td><a href="#/myplants/{{plant.PlantKey}}">{{plant.PlantKey}}</a></td>
+			<td><a href="#/myplants/{{plant.PlantKey}}">{{plant.Name}}</a></td>
 		</tr>
 
 	</table>
--->
+
 </div>

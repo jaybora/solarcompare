@@ -1,22 +1,33 @@
-<h4 style="padding-bottom: 1em;" ng-hide="addMode">
+<h2 style="padding-bottom: 1em;" ng-hide="addMode">
 	Rediger oplysning for anlæg {{plant.PlantKey}} - {{plant.Name}}
-</h4>
-<h4 style="padding-bottom: 1em;" ng-show="addMode">
+</h2>
+<h2 style="padding-bottom: 1em;" ng-show="addMode">
 	Opret nyt anlæg {{plant.PlantKey}} {{plant.Name}}
-</h4>
-<form name="plantdata" ng-submit="update()">
-	<table class="plantdata">
-		<tr>
-			<td class="plantdata">
-				<label for="plantkey" ng-show="addMode">Anlægs id</label>
-			</td>
-			<td class="plantdata">
-				<input type="text" id="plantkey" size="20" maxlength="80" ng-model="PlantKey" ng-show="addMode" required/>
-			</td>
-			<td>
-				<button ng-show="addMode" ng-click="createPlant()" class="btn  btn-primary">Opret</button>
-			</td>
+</h2>
+<form name="newplant" class="form-horizontal" ng-submit="createPlant()" ng-show="addMode">
+	<fieldset>
+		<legend>Opret anlægs id</legend>
+		<div class="control-group">	
+			<label class="control-label" for="plantkey">Anlægs id</label>
+			<div class="controls">
+				<input type="text" id="plantkey" name="plantkey" size="20" maxlength="80" ng-model="PlantKey"placeholder="Unik id for anlæg..." required ng-Pattern="/^[A-Za-z0-9]+$/"/>
+				<span class="error" ng-show="plantdata.plantkey.$error.pattern">Ugyldigt id</span>
+				<span class="help-block">Indtast et unik id for anlægget. Bogstaver a-z og tal uden mellemrum kan benyttes.</span>
+			</div>
+		</div>
 
+		<div class="control-group">
+			<div class="controls">
+				<a ng-click="cancel()" class="btn">Annuller</a>
+				<input type="submit" class="btn  btn-primary" value="Opret"/>
+			</div>
+		</div>
+	</fieldset>
+</form>
+<form name="plantdata" class="form-horizontal" ng-submit="update()" ng-hide="addMode">
+
+
+<!--
 		</tr>		
 		<tr ng-hide="addMode">
 			<td class="plantdata">
@@ -85,6 +96,7 @@
 				<input id="picture" type="file" size="20" maxlength="40" ng-model="plant.Picture"/>
 			</td>
 		</tr> -->
+<!--		
 		<tr ng-hide="addMode">
 			<td class="plantdata">
 				<label for="panelvendor">Panel producent</label>
@@ -212,6 +224,7 @@
 		
 
 	</table>
+-->
 
 
 </form>
