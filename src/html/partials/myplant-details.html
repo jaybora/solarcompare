@@ -10,7 +10,7 @@
 		<div class="control-group">	
 			<label class="control-label" for="plantkey">Anlægs id</label>
 			<div class="controls">
-				<input type="text" id="plantkey" name="plantkey" size="20" maxlength="80" ng-model="PlantKey"placeholder="Unik id for anlæg..." required ng-Pattern="/^[A-Za-z0-9]+$/"/>
+				<input type="text" id="plantkey" name="plantkey" size="20" maxlength="80" ng-model="PlantKey" placeholder="Unik id for anlæg..." required ng-Pattern="/^[A-Za-z0-9]+$/"/>
 				<span class="error" ng-show="plantdata.plantkey.$error.pattern">Ugyldigt id</span>
 				<span class="help-block">Indtast et unik id for anlægget. Bogstaver a-z og tal uden mellemrum kan benyttes.</span>
 			</div>
@@ -25,207 +25,128 @@
 	</fieldset>
 </form>
 <form name="plantdata" class="form-horizontal" ng-submit="update()" ng-hide="addMode">
-
-
-<!--
-		</tr>		
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="plantname">Navn</label>
-			</td>
-			<td class="plantdata">
-				<input type="text" id="plantname" size="20" maxlength="80" ng-model="plant.Name" required/>
-			</td>
-		</tr>		
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="map">Kort</label>
-			</td>
-			<td class="plantdata">
+	<fieldset>
+		<legend>Generelle oplysninger om anlæg</legend>
+		<div class="control-group">
+			<label class="control-label" for="plantname">Anlægsnavn</label>
+			<div class="controls">
+				<input type="text" id="plantname" size="20" maxlength="80" ng-model="plant.Name" required placeholder="Navn på anlæg"/>
+				<span class="help-block">Navn der benyttes som overskrift ved visning af data fra anlæg</span>
+			</div>
+		</div>
+		<div class="control-group">
+			<label class="control-label">Kort</label>
+			<div class="controls">
 				<google-map center="map.center" draggable="true" zoom="map.zoom" mark-click="true" refresh="map.refresh" markers="map.markers" longitude="map.longitude" latitude="map.latitude" style="height: 200px; width: 200px; display:block;"></google-map>
-			</td>
-			<td class="plantdata">
-				<a ng-click="findMe()" class="btn">Hit mig</a>
-			</td>
-		</tr>
-<!--
-		<tr>
-			<td class="plantdata">
-				<label for="zoom">Zoom</label>
-			</td>
-			<td class="plantdata">
-				<input type="number" id="zoom" size="20" maxlength="80" ng-model="map.zoom"/>
-			</td>
-		</tr>
-		<tr>
-			<td class="plantdata">
-				<label for="latitude">Latitude mark</label>
-			</td>
-			<td class="plantdata">
-				<input id="latitude" size="20" maxlength="80" ng-model="map.latitude"/>
-			</td>
-		</tr>
-		<tr>
-			<td class="plantdata">
-				<label for="longitude">Longitude mark</label>
-			</td>
-			<td class="plantdata">
-				<input id="longitude" size="20" maxlength="80" ng-model="map.longitude"/>
-			</td>
-		</tr>		<tr>
-			<td class="plantdata">
-				<label for="latitude">Latitude</label>
-			</td>
-			<td class="plantdata">
-				<input id="latitude" size="20" maxlength="80" ng-model="map.center.latitude"/>
-			</td>
-		</tr>
-		<tr>
-			<td class="plantdata">
-				<label for="longitude">Longitude</label>
-			</td>
-			<td class="plantdata">
-				<input id="longitude" size="20" maxlength="80" ng-model="map.center.longitude"/>
-			</td>
-		</tr> 
-		<tr>
-			<td class="plantdata">
-				<label for="picture">Billede</label>
-			</td>
-			<td class="plantdata">
-				<input id="picture" type="file" size="20" maxlength="40" ng-model="plant.Picture"/>
-			</td>
-		</tr> -->
-<!--		
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="panelvendor">Panel producent</label>
-			</td>
-			<td class="plantdata">
-				<input type="text" id="panelvendor" size="20" maxlength="40" ng-model="plant.Panels.Vendor"/>
-			</td>
-		</tr>
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="panelmodel">Panel model</label>
-			</td>
-			<td class="plantdata">
-				<input type="text" id="panelmodel" size="20" maxlength="40" ng-model="plant.Panels.Model"/>
-			</td>
-		</tr>
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="panelcapacity">Paneler samlet effekt</label>
-			</td>
-			<td class="plantdata">
-				<input type="number" id="panelcapacity" size="7" maxlength="7" min="0" max="9999999" ng-model="plant.Panels.Capacity"/> watt peak
-			</td>
-		</tr>
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="panelpieces">Antal paneler</label>
-			</td>
-			<td class="plantdata">
+				<span class="help-block">Hvor ligger anlægget? Klik på kortet for at sætte markering. Klik igen andet sted for flytte markering. Brug Find mig knappen til at søge din aktuelle pladsering op</span>
+				<a ng-click="findMe()" class="btn">Find mig</a>
+			</div>
+		</div>
+	</fieldset>
+	<fieldset>
+		<legend>Oplysninger paneler og inverter</legend>
+		<div class="control-group">
+			<label class="control-label" for="panelvendor">Panel producent</label>
+			<div class="controls">
+				<input type="text" id="panelvendor" size="20" maxlength="40" ng-model="plant.Panels.Vendor" placeholder="F.eks. Bosch"/>				
+			</div>
+		</div>
+		<div class="control-group">
+			<label class="control-label" for="panelmodel">Panel model</label>
+			<div class="controls">
+				<input type="text" id="panelmodel" size="20" maxlength="40" ng-model="plant.Panels.Model" placeholder="F.eks. 200-18v"/>				
+			</div>
+		</div>
+		<div class="control-group">
+			<label class="control-label" for="panelcapacity">Panelers samlede effekt</label>
+			<div class="controls">
+				<input type="number" id="panelcapacity" size="7" maxlength="7" min="0" max="9999999" ng-model="plant.Panels.Capacity"/> watt peak				
+			</div>
+		</div>
+		<div class="control-group">
+			<label class="control-label" for="panelpieces">Antal paneler</label>
+			<div class="controls">
 				<input type="number" min="0" max="9999" id="panelpieces" size="2" maxlength="4" ng-model="plant.Panels.Pieces"/> stk
-			</td>
-		</tr>
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="invertervendor">Inverter producent</label>
-			</td>
-			<td class="plantdata">
-				<input type="text" id="invertervendor" size="20" maxlength="40" ng-model="plant.Inverter.Vendor"/>
-			</td>
-		</tr>
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="invertermodel">Inverter model</label>
-			</td>
-			<td class="plantdata">
-				<input type="text" id="invertermodel" size="20" maxlength="40" ng-model="plant.Inverter.Model"/>
-			</td>
-		</tr>
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="invertercapacity">Inverter effekt</label>
-			</td>
-			<td class="plantdata">
-				<input type="number" id="invertercapacity" size="7" maxlength="7" min="0" max="9999999" ng-model="plant.Inverter.Capacity"/> watt peak
-			</td>
-		</tr>
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="installationdate">Idriftsættelsesdato</label>
-			</td>
-			<td class="plantdata">
-				<datepicker ng-model="installationdate" show-weeks="false" starting-day="1">
-				</datepicker>
-			</td>
-    		<td><em>{{installationdate | date:'fullDate' }}</em></td>
-		</tr>
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="installationprice">Pris</label>
-			</td>
-			<td class="plantdata">
-				<input type="number" min="0" max="999999999" id="installationprice" size="7" maxlength="8" ng-model="plant.InstallationData.Price"/> kr.
-				<p>Incl. montering <input type="checkbox" ng-model="plant.InstallationData.PriceIncludeMounting"></p>
-			</td>
-		</tr>
-		<tr ng-hide="addMode">
-			<td class="plantdata">
-				<label for="dataprovider">Dataleverandør</label>
-			</td>
-			<td class="plantdata">
+			</div>
+		</div>
+		<div class="control-group">
+			<label class="control-label" for="invertervendor">Inverter producent</label>
+			<div class="controls">
+				<input type="text" id="invertervendor" size="20" maxlength="40" ng-model="plant.Inverter.Vendor" placeholder="F.eks. Danfoss"/>				
+			</div>
+		</div>
+		<div class="control-group">
+			<label class="control-label" for="invertermodel">Inverter model</label>
+			<div class="controls">
+				<input type="text" id="invertermodel" size="20" maxlength="40" ng-model="plant.Inverter.Model" placeholder="F.eks. TLX+"/>				
+			</div>
+		</div>
+		<div class="control-group">
+			<label class="control-label" for="invertercapacity">Inverters maks effekt</label>
+			<div class="controls">
+				<input type="number" id="invertercapacity" size="7" maxlength="7" min="0" max="9999999" ng-model="plant.Inverter.Capacity" placeholder="F.eks. 6000"/> watt peak		
+			</div>
+		</div>
+	</fieldset>
+	<fieldset>
+		<legend>Oplysninger til økonomiberegninger</legend>
+		<div class="control-group">
+			<label class="control-label" for="installationdate">Idriftsættelsesdato</label>
+			<div class="controls">
+				<input type="text" datepicker-popup="dd-MM-yyyy" ng-model="installationdate" open="opened"  datepicker-options="dateOptions" ng-required="false" />
+				<span class="help-block">{{installationdate | date:'fullDate' }}</span>
+			</div>
+		</div>
+		<div class="control-group">
+			<label class="control-label" for="installationprice">Pris</label>
+			<div class="controls">
+				<input type="number" min="0" max="999999999" id="installationprice" size="7" maxlength="8" ng-model="plant.InstallationData.Price"/> kr.<br/>
+				<input type="checkbox" ng-model="plant.InstallationData.PriceIncludeMounting"> incl. montering
+			</div>
+		</div>
+	</fieldset>
+	<fieldset>
+		<legend>Oplysning om levering af data</legend>
+		<small>For at kunne hente data fra inverterne bruges forskellige teknikker. For SMA og solar-edge hentes oplysningerne via deres hjemmesider. For at kunne hente data fra Kostal og Danfoss kræves at inverterne er tilsluttet internettet og har en ip adresse (eller fast dns navn) og at der åbnet for adgang til inverteren fra internettet.</small>
+		<div class="control-group">
+			<label class="control-label" for="dataprovider">Dataleverandør</label>
+			<div class="controls">
 				<select id="dataprovider" ng-model="plant.DataProvider" ng-options="d.DataProvider as d.Name for d in DataProviders" required ng-change="updatedDataprovider()">
 				</select>
-			</td>
-		</tr>
-		<tr ng-show="showUsername()">
-			<td class="plantdata">
-				<label for="username">Brugernavn</label>
-			</td>
-			<td class="plantdata">
+				<span class="help-block">Vælg hvordan vi skal hente data fra inverteren. Vi arbejder på at skrive en mere udførlig vejledning.</span>
+			</div>
+		</div>
+		<div class="control-group" ng-show="showUsername()">
+			<label class="control-label" for="username">Brugernavn</label>
+			<div class="controls">
 				<input type="text" id="username" size="20" maxlength="80" ng-model="plant.InitiateData.UserName"/>
-			</td>
-		</tr>
-		<tr ng-show="showPassword()">
-			<td class="plantdata">
-				<label for="password">Adgangskode</label>
-			</td>
-			<td class="plantdata">
+			</div>
+		</div>
+		<div class="control-group" ng-show="showPassword()">
+			<label class="control-label" for="password">Adgangskode</label>
+			<div class="controls">
 				<input type="password" id="password" size="20" maxlength="80" ng-model="plant.InitiateData.Password"/>
-			</td>
-		</tr>
-		<tr ng-show="showPlantno()">
-			<td class="plantdata">
-				<label for="plantno">Anlægs nummer</label>
-			</td>
-			<td class="plantdata">
-				<input type="text" id="plantno" size="2" maxlength="10" ng-model="plant.InitiateData.PlantNo"/>
-			</td>
-		</tr>
-		<tr ng-show="showAddress()">
-			<td class="plantdata">
-				<label for="address">Internet adresse</label>
-			</td>
-			<td class="plantdata">
+			</div>
+		</div>
+		<div class="control-group" ng-show="showPlantno()">
+			<label class="control-label" for="plantno">Anlægsnummer</label>
+			<div class="controls">
+				<input type="text" id="plantno" size="20" maxlength="80" ng-model="plant.InitiateData.PlantNo"/>
+			</div>
+		</div>
+		<div class="control-group" ng-show="showAddress()">
+			<label class="control-label" for="address">Internet adresse</label>
+			<div class="controls">
 				<input type="text" id="address" size="20" maxlength="100" ng-model="plant.InitiateData.Address"/>
-			</td>
-		</tr>
-		<tr>
-			<td/>
-			<td>
-				<a ng-hide="addMode" ng-click="delete()" class="btn btn-danger">Slet anlæg</a>
-				<a ng-click="cancel()" class="btn">Annuller</a>
-				<button ng-hide="addMode" ng-click="update()" class="btn  btn-primary">Gem</button>
-			</td>			
-		</tr>
-		
-
-	</table>
--->
+			</div>
+		</div>
 
 
+	<div class="control-group">
+		<div class="controls">
+			<a ng-click="delete()" class="btn btn-danger">Slet anlæg</a>
+			<a ng-click="cancel()" class="btn">Annuller</a>
+			<button ng-click="update()" class="btn  btn-primary">Gem</button>
+		</div>
+	</div>
 </form>
-

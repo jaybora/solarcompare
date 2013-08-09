@@ -6,7 +6,7 @@
 google.load('visualization', '1', {packages: ['corechart']});
 //google.load('visualization', '1', {packages:['gauge']});
 
-angular.module('solarcompare', ['ngGrid', 'MyPlantsService', 'google-maps', 'googlechart.directives', 'ui.bootstrap']).
+angular.module('solarcompare', ['MyPlantsService', 'google-maps', 'googlechart.directives', 'ui.bootstrap']).
   config(['$routeProvider', function($routeProvider) {
   $routeProvider.
       when('/', {templateUrl: '/html/partials/frontpage-plants.html',   

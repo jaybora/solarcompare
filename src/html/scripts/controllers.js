@@ -145,18 +145,6 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams) {
 function MyPlantsCtrl($scope, MyPlants) {
 	$scope.plants = MyPlants.getAll();
 
-	// $scope.gridOptions = {
-	// 	data: 'plants',
-	// 	multiSelect: false,
-	// 	keepLastSelected:false,
-	// 	columnDefs: [{field:'PlantKey', displayName:'Anlægs id'},
-	// 	{field:'Name', displayName:'Navn'}],
-	//     beforeSelectionChange:function(row){
-	// 		window.location.assign("#/myplants/" + row.entity.PlantKey);
-	// 		return false;
-	// 	}
-	// };
-
 	$scope.add = function() {
 		window.location.assign("#/myplants/add");
 	}
@@ -184,7 +172,16 @@ function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, Da
 			}, function () {
 				
 			});
-		}	
+		} else {
+			window.alert("Beklager, men vi kunne desværre ikke finde din pladsering");
+			$scope.map.center = {latitude: 57, longitude: 11};
+			$scope.map.latitude = 57;
+			$scope.map.longitude = 11;
+			$scope.map.markers = [{
+				latitude: 57, longitude: 11
+			}];
+		}
+
 	};
 
 	$scope.updatedDataprovider = function() {
@@ -339,7 +336,16 @@ function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, Da
 		return _.contains($scope.selectedDataProvider.RequiredFields, 'Address');
 	}
 
+	 $scope.open = function() {
+	    $timeout(function() {
+	      $scope.opened = true;
+	    });
+	  }
 
+	  $scope.dateOptions = {
+	    'year-format': "'yy'",
+	    'starting-day': 1
+	  }
 
 
 }
