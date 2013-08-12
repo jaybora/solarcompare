@@ -1,4 +1,7 @@
-function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams) {
+function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams, ga, $location, My) {
+    ga('set', 'dimension1', My.Email);
+    ga('send', 'pageview', $location.path());
+
 	$scope.plants = [];
 	console.log("FrontpagePlantsCtrl to show the following plants: " + 
 		$routeParams.plants)
@@ -67,13 +70,14 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams) {
 					animation: {duration: 1600, easing: 'inAndOut'}
 				}
 			};
-				
+
 			$scope.plants.push(plant);
 
 		};
 
 	    $timeout(updateFn, 100);
 	    $timeout(updateAreaChartFn, 100);
+	    $timeout(updateAnalytics, 1800000)
 	});
 
 	// Fast update function for powerac
@@ -93,6 +97,12 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams) {
 				// For gauge chart
 				plant.PowerAcGauge.data = [['Watt'], [pv.PowerAc]];
 
+				// Avg calc
+				plant.AvgProdPerDay = pv.EnergyTotal / plant.InstallationData.DaysSinceStart;
+
+				plant.AvgProdPerCurrencyAmount = plant.AvgProdPerDay / plant.InstallationData.Price * 1000 * 365;
+
+				plant.AvgProdPerYear = plant.AvgProdPerDay * 365;
 			});
 		}
 		$timeout(updateFn, 10000);
@@ -138,11 +148,20 @@ function FrontpagePlantsCtrl($scope, Plants, $timeout, $filter, $routeParams) {
 		$timeout(updateAreaChartFn, 300000);
 	};
 
+	var updateAnalytics = function() {
+		ga('send', 'pageview', $location.path());
+		// Update every 30 minutes to avoid session timeout on GA
+		$timeout(updateAnalytics, 1800000)
+	}
+
 
 
 }
 
-function MyPlantsCtrl($scope, MyPlants) {
+function MyPlantsCtrl($scope, ga, $location, MyPlants, My) {
+    ga('set', 'dimension1', My.Email);
+    ga('send', 'pageview', $location.path());
+
 	$scope.plants = MyPlants.getAll();
 
 	$scope.add = function() {
@@ -150,7 +169,9 @@ function MyPlantsCtrl($scope, MyPlants) {
 	}
 }
 
-function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, DataProviders) {
+function MyPlantDetailCtrl($scope, $routeParams, MyPlants, $window, $timeout, DataProviders, $location, My) {
+    ga('set', 'dimension1', My.Email);
+    ga('send', 'pageview', $location.path());
 	$scope.findMe = function () {
 		console.log("Find me running...");
 			
@@ -354,10 +375,12 @@ function UserCtrl($scope, My) {
 	$scope.user = My
 }
 
-function AboutCtrl() {
-	
+function AboutCtrl(ga, $location, My) {
+    ga('set', 'dimension1', My.Email);
+    ga('send', 'pageview', $location.path());
 }
 
-function NewsCtrl() {
-
+function NewsCtrl(ga, $location, My) {
+    ga('set', 'dimension1', My.Email);
+    ga('send', 'pageview', $location.path());
 }

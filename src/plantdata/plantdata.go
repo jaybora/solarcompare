@@ -23,6 +23,7 @@ type InstallationData struct {
 	StartDate            time.Time
 	Price                float32
 	PriceIncludeMounting bool
+	DaysSinceStart       uint `datastore:"-"` //Calculated field, dont save in datastore
 }
 
 type Plant struct {

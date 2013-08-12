@@ -142,6 +142,7 @@ func handleListPlants(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.Write([]byte(","))
 		}
+		p.InstallationData.DaysSinceStart = calculateDaysForInstallationData(&p.InstallationData.StartDate)
 
 		json, err := p.ToJson()
 		if err != nil {
@@ -158,6 +159,19 @@ func handleListPlants(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func calculateDaysForInstallationData(startDate *time.Time) uint {
+	//Calculate days for installationData
+
+	h := time.Now().Sub(*startDate).Hours()
+	if h > 0 {
+		return uint(h/24) + 1
+	} else {
+		return 0
+	}
+	return 0
+
+}
+
 /*
  Get a plant
 */
@@ -166,6 +180,9 @@ func Plant(r *http.Request, plantkey *string) (plant *plantdata.Plant, err error
 	plant = &plantdata.Plant{}
 	plant.PlantKey = *plantkey
 	err = g.Get(plant)
+	plant.InstallationData.DaysSinceStart =
+		calculateDaysForInstallationData(&plant.InstallationData.StartDate)
+
 	return
 }
 

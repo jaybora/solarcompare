@@ -70,7 +70,7 @@
 					Kort
 				</td>
 				<td ng-repeat="plant in plants" class="text-center">
-					<img src="http://maps.googleapis.com/maps/api/staticmap?zoom=7&center={{plant.Latitude}},{{plant.Longitude}}&size=120x120&maptype=roadmap&markers={{plant.Latitude}},{{plant.Longitude}}&sensor=false?key=AIzaSyBRJIiDA0pNzt0HlFYPpZ9PdxU6voGrHnw" height="120px" width="120px"/>
+					<img src="https://maps.googleapis.com/maps/api/staticmap?zoom=7&center={{plant.Latitude}},{{plant.Longitude}}&size=120x120&maptype=roadmap&markers={{plant.Latitude}},{{plant.Longitude}}&sensor=false" height="120px" width="120px"/>
 					<!--
 					<google-map center="plant.map.center" draggable="false" zoom="plant.map.zoom" mark-click="false" markers="plant.map.markers" style="height: 120px; width: 120px; display:block;"></google-map>-->
 				</td>
@@ -117,6 +117,40 @@
 				</td>
 				<td ng-repeat="plant in plants" class="text-center">
 					<span>{{plant.Inverter.Vendor}} {{plant.Inverter.Model}}</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Idriftsættelsesdato
+				</td>
+				<td ng-repeat="plant in plants" class="text-center">
+					<span>{{plant.InstallationData.StartDate | date:'longDate'}}</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Gns prod. pr. døgn
+				</td>
+				<td ng-repeat="plant in plants" class="text-center">
+					<span>{{plant.AvgProdPerDay | number:2}} kWh/døgn</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Gns prod. pr. år
+				</td>
+				<td ng-repeat="plant in plants" class="text-center">
+					<span>{{plant.AvgProdPerYear | number:0}} kWh/år</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="headcol">
+					Gns. prod pr. kr pr. år<br/>
+					<small>(Højeste tal er bedst)</small>
+				</td>
+				<td ng-repeat="plant in plants" class="text-center">
+					<span ng-show="plant.InstallationData.Price > 1000">{{plant.AvgProdPerCurrencyAmount | number:4}} Watt/år/kr</span>
+					<span ng-hide="plant.InstallationData.Price > 1000">Mangler data</span>
 				</td>
 			</tr>
 		</tbody>
