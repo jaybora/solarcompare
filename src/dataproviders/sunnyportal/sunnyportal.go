@@ -67,7 +67,7 @@ type smaPacReply struct {
 	Info smaPacReplyInfo
 }
 
-var log = logger.NewLogger(logger.INFO, "Dataprovider: SunnyPortal:")
+var log = logger.NewLogger(logger.DEBUG, "Dataprovider: SunnyPortal:")
 
 const MAX_ERRORS = 5
 
@@ -156,6 +156,7 @@ func initiate(sunny *sunnyDataProvider,
 				return err
 			}
 			pv.PowerAc = pac
+			updateTotalEnergyData(sunny.client)
 
 			pv.LatestUpdate = nil
 			return nil
@@ -302,6 +303,47 @@ func (c *sunnyDataProvider) sendPlantNoSwitchCommand(plantno string) error {
 	return nil
 }
 
+func updateTotalEnergyData(client *http.Client) (energyTotal float32, err error) {
+	formData := url.Values{}
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$DashboardScriptManager",
+		"ctl00$ContentPlaceHolder1$UserControlShowDashboard1$energyYieldWidgetLoader$AsyncLoadControlUpdatePanel|ctl00_ContentPlaceHolder1_UserControlShowDashboard1_energyYieldWidgetLoader_AsyncLoadControlUpdatePanel")
+	formData.Add("__EVENTTARGET", "ctl00_ContentPlaceHolder1_UserControlShowDashboard1_energyYieldWidgetLoader_AsyncLoadControlUpdatePanel")
+	formData.Add("__VIEWSTATE", "")
+	formData.Add("__EVENTARGUMENT", "AsyncLoad_energyYieldWidgetLoader")
+	formData.Add("ctl00$_scrollPosHidden", "")
+	formData.Add("LeftMenuNode_0", "0")
+	formData.Add("LeftMenuNode_1", "1")
+	formData.Add("LeftMenuNode_2", "0")
+	//--
+	//formData.Add("ctl00$HiddenPlantOID", "facb16e7-c40d-4316-a853-48c7620d1745")
+	formData.Add("TabSwitchDeviceSelectionHid", "1")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$currentplantPowerWidgetContent$__dataToCsharpPlantPowerWidgetControl", "")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$UserControlShowEnergyAndPower1$_datePicker$textBox", "6/7/2013")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$UserControlShowEnergyAndPower1$NavigateDivHidden", "")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$UserControlShowEnergyAndPower1$PlantName", "Guldnældevænget 33")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$UserControlShowEnergyAndPower1$SelectedIntervalID", "3")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$currentplantPowerWidgetContent$__dataFromCsharpPlantPowerWidgetControl",
+		";currentPlantPowerPointerAngle:78;x_hours_ago:{0} hours ago;just_now:just now;one_hours_ago:an hour ago;some_seconds_ago:a few seconds ago;x_minutes_ago:{0} minutes ago")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$currentplantPowerWidgetContent$__dataToCsharpPlantPowerWidgetControl", "")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowDashboard1$UserControlShowEnergyAndPower1$UseIntervalHour", "0")
+
+	log.Debugf("Posting to %s, with body: %s", plantSelectUrl, formData)
+	resp, err := client.PostForm(plantSelectUrl, formData)
+
+	if err != nil {
+		log.Fail(err.Error())
+		return
+	}
+	defer resp.Body.Close()
+	b, _ := ioutil.ReadAll(resp.Body)
+	log.Debugf("Response status for getting energy total was %s\n", resp.Status)
+
+	log.Debugf("Response was %s", b)
+
+	return
+
+}
+
 func (c *sunnyDataProvider) plantName() (name string, err error) {
 	log.Debugf("Getting from %s", profileUrl)
 	resp, err := c.client.Get(profileUrl)
@@ -409,6 +451,7 @@ func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDai
 	formData.Add("__EVENTARGUMENT", "")
 	formData.Add("__ctl00$ContentPlaceHolder1$UserControlShowEnergyAndPower1$_diagram_VIEWSTATE", viewstate)
 	formData.Add("__VIEWSTATE", "")
+	formData.Add("__ASYNCPOST", "true")
 	formData.Add("ctl00$_scrollPosHidden", "0")
 	formData.Add("LeftMenuNode_0", "1")
 	formData.Add("LeftMenuNode_1", "0")

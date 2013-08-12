@@ -64,6 +64,12 @@ func Test_Connection(t *testing.T) {
 	}
 	t.Logf("Pac data is %d", pac)
 
+	etotal, err := updateTotalEnergyData(sunny.client)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	t.Logf("Etotal data is %d", etotal)
+
 	pvdaily, err := updateDailyProduction(sunny.client)
 	if err != nil {
 		t.Error(err.Error())
