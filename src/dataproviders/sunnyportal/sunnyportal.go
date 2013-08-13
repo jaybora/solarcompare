@@ -172,6 +172,8 @@ func initiate(sunny *sunnyDataProvider,
 				pv.EnergyToday = 0
 			}
 
+			time.Sleep(1 * time.Second)
+
 			etotal, err := updateTotalProduction(sunny.client)
 			if err != nil {
 				return err
