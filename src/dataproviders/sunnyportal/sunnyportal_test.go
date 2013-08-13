@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+/*
+To run test export GOPATH=/Users/jbr/github/local/solarcompare
+then
+go test -test.v dataproviders/solaredge
+*/
+
 type PlantStatsStore struct {
 }
 
@@ -64,11 +70,13 @@ func Test_Connection(t *testing.T) {
 	}
 	t.Logf("Pac data is %d", pac)
 
-	etotal, err := updateTotalEnergyData(sunny.client)
+	etotal, err := updateTotalProduction(sunny.client)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	t.Logf("Etotal data is %d", etotal)
+	t.Logf("Etotal data is %f", etotal)
+
+	time.Sleep(1 * time.Second)
 
 	pvdaily, err := updateDailyProduction(sunny.client)
 	if err != nil {

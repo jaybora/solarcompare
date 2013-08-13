@@ -2,7 +2,7 @@ package sunnyportal
 
 import (
 	"bufio"
-
+	"bytes"
 	"dataproviders"
 	"encoding/json"
 	"errors"
@@ -67,7 +67,7 @@ type smaPacReply struct {
 	Info smaPacReplyInfo
 }
 
-var log = logger.NewLogger(logger.DEBUG, "Dataprovider: SunnyPortal:")
+var log = logger.NewLogger(logger.INFO, "Dataprovider: SunnyPortal:")
 
 const MAX_ERRORS = 5
 
@@ -156,7 +156,6 @@ func initiate(sunny *sunnyDataProvider,
 				return err
 			}
 			pv.PowerAc = pac
-			updateTotalEnergyData(sunny.client)
 
 			pv.LatestUpdate = nil
 			return nil
@@ -172,6 +171,12 @@ func initiate(sunny *sunnyDataProvider,
 			} else {
 				pv.EnergyToday = 0
 			}
+
+			etotal, err := updateTotalProduction(sunny.client)
+			if err != nil {
+				return err
+			}
+			pv.EnergyTotal = etotal
 
 			return nil
 		},
@@ -251,7 +256,7 @@ func (c *sunnyDataProvider) setPlantNo(plantno string) error {
 			log.Debug("setPlantNo successfull!")
 			return nil
 		}
-		log.Debugf("setPlantNo, try number %i", i)
+		log.Debugf("setPlantNo, try number %d", i)
 	}
 	return err
 }
@@ -417,7 +422,7 @@ func updatePacData(c *http.Client) (pac uint16, err error) {
 	return
 }
 
-func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDaily, err error) {
+func getCsvFile(client *http.Client, intervalId string) (csv []byte, err error) {
 	log.Debugf("Getting from %s", csvPostUrl)
 	resp, err := client.Get(csvPostUrl)
 
@@ -456,7 +461,7 @@ func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDai
 	formData.Add("LeftMenuNode_0", "1")
 	formData.Add("LeftMenuNode_1", "0")
 	formData.Add("__EVENTTARGET", "ctl00$ContentPlaceHolder1$UserControlShowEnergyAndPower1$LinkButton_TabBack1")
-	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowEnergyAndPower1$SelectedIntervalID", "4")
+	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowEnergyAndPower1$SelectedIntervalID", intervalId)
 	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowEnergyAndPower1$UseIntervalHour", "0")
 	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowEnergyAndPower1$ImageButtonDownload.x", "10")
 	formData.Add("ctl00$ContentPlaceHolder1$UserControlShowEnergyAndPower1$ImageButtonDownload.y", "14")
@@ -488,11 +493,23 @@ func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDai
 	defer resp.Body.Close()
 	//csv, _ := ioutil.ReadAll(resp.Body)
 
-	log.Debugf("Received status %s on csv request", resp.StatusCode)
+	log.Debugf("Received status %d on csv request", resp.StatusCode)
 
-	reader := bufio.NewReader(resp.Body)
-	log.Debug("CSV received:")
+	csv, _ = ioutil.ReadAll(resp.Body)
+	log.Tracef("CSV received: %s", csv)
+
+	return
+
+}
+
+func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDaily, err error) {
 	// Jump over first line
+	csv, err := getCsvFile(client, "4")
+	if err != nil {
+		return
+	}
+
+	reader := bufio.NewReader(bytes.NewReader(csv))
 	_, _ = reader.ReadString('\n')
 	pvDaily = make(map[string]uint16)
 	for {
@@ -508,7 +525,36 @@ func updateDailyProduction(client *http.Client) (pvDaily dataproviders.PvDataDai
 		prod, _ := strconv.ParseFloat(cols[1], 64)
 		pvDaily[parseSmaDateToKey(cols[0])] = uint16(prod * 1000)
 	}
+	return
+}
 
+func updateTotalProduction(client *http.Client) (value float32, err error) {
+	// Jump over first line
+	csv, err := getCsvFile(client, "6")
+	if err != nil {
+		log.Failf("Error in updateTotalProduction: %s", err.Error())
+		return
+	}
+	reader := bufio.NewReader(bytes.NewReader(csv))
+
+	_, _ = reader.ReadString('\n')
+
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		log.Tracef("%s", line)
+		cols := strings.Split(line, ";")
+		log.Tracef("Cols: %s", cols)
+		if len(cols) < 3 {
+			continue
+		}
+		log.Tracef("Year %s, production %s", cols[0], cols[1])
+		value64, _ := strconv.ParseFloat(cols[1], 64)
+		value += float32(value64)
+
+	}
 	return
 }
 
