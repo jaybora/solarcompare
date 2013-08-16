@@ -380,6 +380,11 @@ function AboutCtrl(ga, $location, My) {
     ga('send', 'pageview', $location.path());
 }
 
+function WorkingOnCtrl(ga, $location, My) {
+    ga('set', 'dimension1', My.Email);
+    ga('send', 'pageview', $location.path());
+}
+
 function NewsCtrl(ga, $location, My) {
     ga('set', 'dimension1', My.Email);
     ga('send', 'pageview', $location.path());

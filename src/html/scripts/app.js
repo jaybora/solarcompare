@@ -13,6 +13,8 @@ angular.module('solarcompare', ['MyPlantsService', 'google-maps', 'googlechart.d
           controller: FrontpagePlantsCtrl}).
       when('/about', {templateUrl: '/html/partials/about.html',   
           controller: AboutCtrl}).
+      when('/workingon', {templateUrl: '/html/partials/workingon.html',   
+          controller: WorkingOnCtrl}).
       when('/news', {templateUrl: '/html/partials/news.html',   
       		controller: NewsCtrl}).
       when('/myplants', {templateUrl: '/html/partials/myplants.html',   
