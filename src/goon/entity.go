@@ -52,6 +52,10 @@ func fromGob(src interface{}, b []byte) error {
 }
 
 func (g *Goon) getStructKey(src interface{}) (*datastore.Key, error) {
+	return g.GetStructKey(src)
+}
+
+func (g *Goon) GetStructKey(src interface{}) (*datastore.Key, error) {
 	v := reflect.Indirect(reflect.ValueOf(src))
 	t := v.Type()
 	k := t.Kind()
