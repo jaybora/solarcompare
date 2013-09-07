@@ -2,5 +2,7 @@ pkg/
 bin/
 
 solarcompare
-
+src/.DS_Store
 src/web/.DS_Store
+dpunit_*
+*.sh~
