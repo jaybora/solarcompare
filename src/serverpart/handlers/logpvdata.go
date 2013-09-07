@@ -113,17 +113,9 @@ func logDaily(w http.ResponseWriter, r *http.Request) {
 		// OK p is now a plant.
 		// Get daily log from datastore
 		c.Debugf("Getting PvData log for plantkey %s", p.PlantKey)
-
-		logDaily := getLogDaily(&p, r, nil)
-		c.Debugf("Getting PvData log for plantkey %s", p.PlantKey)
-
-		var exsistingLogs []LogPvDataForJson
-		if len(logDaily.Logs) > 0 {
-			err = json.Unmarshal(logDaily.Logs, &exsistingLogs)
-			if err != nil {
-				c.Errorf("Could not unmarshal json PvDataLog from datastore due to %s for plant %s", err.Error(), p.PlantKey)
-				continue
-			}
+		exsistingLogs, err := GetLogPvData(&p, r, nil)
+		if err != nil {
+			continue
 		}
 
 		// Get pvdata to add to json log
@@ -133,6 +125,7 @@ func logDaily(w http.ResponseWriter, r *http.Request) {
 			c.Errorf("%s", err.Error())
 			continue
 		}
+
 		//Logtime to keep all logs for this jobrun syncronizes
 		newLog := LogPvDataForJson{logtime, pvdata}
 		newLogs := append(exsistingLogs, newLog)
@@ -150,6 +143,21 @@ func logDaily(w http.ResponseWriter, r *http.Request) {
 
 	}
 	fmt.Fprintf(w, "Done. Logged PvData for %d plants", okcounter)
+
+}
+
+func GetLogPvData(plant *plantdata.Plant, r *http.Request, date *string) (existingLogs []LogPvDataForJson, err Error) {
+	logDaily := getLogDaily(plant, r, date)
+	c.Debugf("Getting PvData log for plantkey %s", plant.PlantKey)
+
+	if len(logDaily.Logs) > 0 {
+		err = json.Unmarshal(logDaily.Logs, &existingLogs)
+		if err != nil {
+			c.Errorf("Could not unmarshal json PvDataLog from datastore due to %s for plant %s", err.Error(), p.PlantKey)
+			return
+		}
+	}
+	return
 
 }
 
@@ -287,18 +295,3 @@ func putLogDaily(plant *plantdata.Plant, date time.Time, r *http.Request, l *Log
 func getDate(year int, month time.Month, day int) time.Time {
 	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 }
-
-/* Princip for log monthly
- * This will go log all day productions for a given month.
- * If run without parameters, default from app engine cron
- * then update for the current month.
- * Go through all plants
- * - Get existing monthlogrecord from datastore. Create if dont exists
- * - - Add logrecord to json for days missing before now. Calculate production by total production value minus previous days value
- * - Close logrecord and switch plant
- */
-
-// func logMonthly(w http.ResponseWriter, r *http.Request) {
-// 	c := appengine.NewContext(r)
-// 	g := goon.NewGoon(r)
-// }
