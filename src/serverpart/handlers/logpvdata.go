@@ -1,5 +1,8 @@
 // +build appengine
 
+// LogPvData daily. This logs a pvdata record for every 10 minutes,
+// run by the cron service at app engine
+
 package handlers
 
 import (
@@ -21,10 +24,8 @@ const keyMonthFormat = "200601"
 
 // This is for the marshalling to json
 type LogPvDataForJson struct {
-	LogTime         time.Time
-	PvData          dataproviders.PvData
-	EnergyTotalDiff float32
-	EnergyTodayDiff uint16
+	LogTime time.Time
+	PvData  *dataproviders.PvData `json:"omitempty"`
 }
 
 // This is stored in the datastore
