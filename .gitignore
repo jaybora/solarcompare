@@ -6,3 +6,5 @@ src/.DS_Store
 src/web/.DS_Store
 dpunit_*
 *.sh~
+
+src/.DS_Store
