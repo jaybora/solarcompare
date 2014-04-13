@@ -17,5 +17,9 @@ handlers:
 - url: /scripts
   static_dir: html/scripts
 
+- url: /_ah/remote_api
+  script: _go_app
+  login: admin
+
 - url: /.*
   script: _go_app

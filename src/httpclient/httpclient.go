@@ -18,7 +18,9 @@ type Jar struct {
 
 func (jar *Jar) SetCookies(u *url.URL, cookies []*http.Cookie) {
 	for _, cookie := range cookies {
-		jar.cookies = append(jar.cookies, cookie)
+		if cookie != nil && len(cookie.Value) > 0 {
+			jar.cookies = append(jar.cookies, cookie)
+		}
 	}
 }
 

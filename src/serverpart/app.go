@@ -7,6 +7,8 @@ import (
 	"serverpart/handlers"
 )
 
+import _ "appengine/remote_api"
+
 var log = logger.NewLogger(logger.INFO, "app.go ")
 
 func init() {
@@ -21,4 +23,6 @@ func init() {
 	http.HandleFunc("/api/v1/dataprovider/", handlers.DataProviderHandler)
 	http.HandleFunc("/api/v1/logpvdata", handlers.LogPvDataHandler)
 	http.HandleFunc("/api/v1/logpvdata/", handlers.LogPvDataHandler)
+	http.HandleFunc("/api/v1/processdata", handlers.ProcessedDataHandler)
+	http.HandleFunc("/api/v1/processdata/", handlers.ProcessedDataHandler)
 }

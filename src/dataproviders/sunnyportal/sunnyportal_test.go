@@ -10,7 +10,7 @@ import (
 /*
 To run test export GOPATH=/Users/jbr/github/local/solarcompare
 then
-go test -test.v dataproviders/solaredge
+go test -test.v dataproviders/sunnyportal
 */
 
 type PlantStatsStore struct {
@@ -43,6 +43,7 @@ func Test_Connection(t *testing.T) {
 		return
 	}
 
+	t.Log("Plantname...")
 	plantname, err := sunny.plantName()
 	if err != nil {
 		t.Error(err.Error())

@@ -113,7 +113,7 @@ func logDaily(w http.ResponseWriter, r *http.Request) {
 		// OK p is now a plant.
 		// Get daily log from datastore
 		c.Debugf("Getting PvData log for plantkey %s", p.PlantKey)
-		exsistingLogs, err := GetLogPvData(&p, r, nil)
+		logDaily, exsistingLogs, err := GetLogPvData(&p, r, nil)
 		if err != nil {
 			continue
 		}
@@ -127,7 +127,7 @@ func logDaily(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//Logtime to keep all logs for this jobrun syncronizes
-		newLog := LogPvDataForJson{logtime, pvdata}
+		newLog := LogPvDataForJson{logtime, &pvdata}
 		newLogs := append(exsistingLogs, newLog)
 
 		// Make it a json string again
@@ -146,14 +146,17 @@ func logDaily(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func GetLogPvData(plant *plantdata.Plant, r *http.Request, date *string) (existingLogs []LogPvDataForJson, err Error) {
-	logDaily := getLogDaily(plant, r, date)
+// Get Logged pv data given date as yyyymmdd
+func GetLogPvData(plant *plantdata.Plant, r *http.Request, date *string) (logDaily *LogPvDataDaily, existingLogs []LogPvDataForJson, err error) {
+	c := appengine.NewContext(r)
+	logDaily = getLogDaily(plant, r, date)
 	c.Debugf("Getting PvData log for plantkey %s", plant.PlantKey)
 
 	if len(logDaily.Logs) > 0 {
 		err = json.Unmarshal(logDaily.Logs, &existingLogs)
 		if err != nil {
-			c.Errorf("Could not unmarshal json PvDataLog from datastore due to %s for plant %s", err.Error(), p.PlantKey)
+			c.Errorf("Could not unmarshal json PvDataLog from datastore due to %s for plant %s",
+				err.Error(), plant.PlantKey)
 			return
 		}
 	}

@@ -67,7 +67,7 @@ type smaPacReply struct {
 	Info smaPacReplyInfo
 }
 
-var log = logger.NewLogger(logger.INFO, "Dataprovider: SunnyPortal:")
+var log = logger.NewLogger(logger.DEBUG, "Dataprovider: SunnyPortal:")
 
 const MAX_ERRORS = 5
 
@@ -75,6 +75,7 @@ const MAX_ERRORS = 5
 
 const startUrl = "http://www.sunnyportal.com/Templates/Start.aspx"
 const loginUrl = "http://www.sunnyportal.com/Templates/Start.aspx"
+const plantList = "/Templates/UserPlantList.aspx"
 const profileUrl = "http://www.sunnyportal.com/FixedPages/PlantProfile.aspx"
 const pacUrl = "http://www.sunnyportal.com/Dashboard"
 const csvPostUrl = "http://sunnyportal.com/FixedPages/EnergyAndPower.aspx"
@@ -231,7 +232,16 @@ func (c *sunnyDataProvider) login(username string, password string) error {
 	log.Debugf("Posting to %s, with body: %s", loginUrl, formData.Encode())
 	resp, err := c.client.PostForm(loginUrl, formData)
 	if resp != nil && resp.StatusCode == 302 {
+		l, _ := resp.Location()
+		log.Tracef("Received location as %s", *l)
 		log.Debug("Login success!")
+		//		log.Debugf("Getting plantlist from %s as the server expect us to get it...", l.String())
+		//		resp2, err2 := c.client.Get(l.String())
+		//		if err2 != nil {
+		//			log.Fail(err2.Error())
+		//			return err2
+		//		}
+		//		defer resp2.Body.Close()
 	} else {
 		if err != nil {
 			log.Fail(err.Error())
@@ -376,7 +386,7 @@ func (c *sunnyDataProvider) plantName() (name string, err error) {
 	}
 
 	found := reg.Find(b)
-	name = string(found[71 : len(found)-7])
+	name = string(found[75 : len(found)-7])
 	log.Debugf("Plantname was found as %s", name)
 	return
 }
